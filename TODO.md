@@ -28,12 +28,10 @@ Single source of truth for project status. All tasks, features, decisions, and g
 - [x] plot beat↔scene sync — already done in SPEC-02; stale doc archived
 
 ### Tier 1 — craft capabilities (new)
-- [~] `novel report` — one-screen manuscript-health rollup (in progress 2026-06-27)
-- [~] read-aloud TTS — actually speak prose via OS TTS (in progress 2026-06-27)
-- [~] `analyze voice` — manuscript-wide character/narrator voice similarity + drift (in progress 2026-06-27)
-- [ ] `novel extract <chapter>` — discovery-writer path: scan drafted prose for
-      proper-noun/speaker candidates, offer one-keystroke entity creation (the
-      biggest divergence from the "support discovery AND planning" philosophy)
+- [x] `novel report` — one-screen manuscript-health rollup (DONE 2026-06-27)
+- [x] read-aloud TTS — `novel readaloud`, OS TTS, cross-platform (DONE 2026-06-27)
+- [x] `analyze voice` — manuscript-wide voice similarity + drift (DONE 2026-06-27)
+- [x] `novel extract <chapter>` — discovery-writer entity extraction (DONE 2026-06-27)
 - [ ] severity tuning — make prose flags density-relative to `style-targets.yml`
       + per-project allow-list; soften imperative copy (Le Guin "don't condemn all telling")
 - [x] session stop-note ("stop while you know what happens next") — ALREADY DONE:
