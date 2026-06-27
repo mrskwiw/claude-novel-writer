@@ -35,6 +35,26 @@ npm test                    # vitest
 `node_modules/` and `dist/` are gitignored — clone, then `npm install` to restore
 them. `package-lock.json` is committed so `npm ci` reproduces the exact tree.
 
+### Release branching convention (MANDATORY)
+
+**Every time we push to `main`, also create and push a `release/v<version>` branch
+on the remote** pointing at the same commit, where `<version>` is the current
+version in `project/package.json`. This preserves a per-version snapshot for history
+and maintenance.
+
+```bash
+# after the push to main:
+VERSION=$(node -p "require('./project/package.json').version")
+git branch "release/v$VERSION" main          # skip if it already exists
+git push origin "refs/heads/release/v$VERSION:refs/heads/release/v$VERSION"
+```
+
+- The branch name is `release/v<major>.<minor>.<patch>` (e.g. `release/v0.1.1`).
+- If a `release/v<version>` branch already exists for the current version, update it
+  to the new `main` commit instead of erroring.
+- Use the `release/` prefix — never a bare `v<version>` branch — so it never
+  collides with the matching `v<version>` git tag.
+
 ## Build & Dev Commands
 
 All commands run from `claudenovel_plugin/`:
