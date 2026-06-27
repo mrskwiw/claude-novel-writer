@@ -1,0 +1,48 @@
+# Valid Test Character
+name: "Sarah Chen"
+role: protagonist
+summary: |
+  A brilliant astrophysicist haunted by her past discoveries.
+
+physical:
+  age: "32"
+  hair: "dark brown"
+  eyes: "brown"
+  height: "5'6\""
+  build: "athletic"
+
+personality:
+  traits: "Curious, determined, haunted by past mistakes"
+  fears: "Failure, being alone, making the wrong decision"
+  desires: "Redemption, understanding the signal, protecting humanity"
+
+background:
+  occupation: "Lead Astrophysicist at SETI"
+  education: "PhD in Astrophysics from MIT"
+  family: "Estranged from parents, no siblings"
+  hometown: "San Francisco, California"
+
+voice:
+  patterns:
+    - "Uses technical jargon when nervous"
+    - "Speaks softly but firmly"
+  vocabulary: "Scientific, precise, occasionally poetic"
+  catchphrases:
+    - "Let's look at the data"
+    - "The universe doesn't lie"
+
+arc:
+  startingState: |
+    Isolated and driven by guilt over a past research accident.
+    Refuses to trust others or form connections.
+  endingState: |
+    Learns to trust her team and accept that science requires
+    collaboration. Finds peace with her past.
+  midpointCrisis: |
+    Discovers the signal is more dangerous than expected and must
+    choose between hiding the truth or risking everything.
+
+notes: |
+  Key relationships:
+  - Alex Rivers (engineer): Initially clash, eventually mutual respect
+  - Dr. Martinez (mentor): Father figure, complicated history

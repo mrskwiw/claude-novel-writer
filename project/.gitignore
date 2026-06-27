@@ -1,0 +1,20 @@
+node_modules/
+dist/
+mcp-server/novel-tools/dist/
+.env
+.env.*
+*.log
+__pycache__/
+.DS_Store
+*.pyc
+.venv/
+coverage/
+*.tsbuildinfo
+*.tgz
+
+# Novel project data (user content, not source)
+novel/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3

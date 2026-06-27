@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+.temp/
+new*.txt
+
+# Database files (user data - never commit)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Test novel projects
+test-novel/
+my-novel/
+example-novel/
+
+# Runtime user-data dir (SQLite DB lives here)
+.novel/
+
+# Git history backups / bundles
+*.bundle
+
+# Windows stray device-name artifact
+nul
+
+# Claude Code personal (machine-local) settings — keep shared settings.json only
+.claude/settings.local.json

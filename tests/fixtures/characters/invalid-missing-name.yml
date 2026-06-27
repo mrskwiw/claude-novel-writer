@@ -1,0 +1,4 @@
+# Invalid Character - Missing name field
+role: protagonist
+summary: |
+  This character is missing the required 'name' field.

@@ -1,0 +1,217 @@
+{
+  "name": "claude-novel-writer",
+  "version": "0.1.1",
+  "description": "AI-assisted novel writing extension for Claude Code",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "novel-writer": "./dist/bin.js",
+    "novel-mcp-server": "./mcp-server/launch.js",
+    "novel-tools-mcp": "./mcp-server/novel-tools/dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc && cd mcp-server/novel-tools && npm run build",
+    "prepare": "npm run build",
+    "watch": "tsc --watch",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepublishOnly": "npm run build && npm run lint && npm run test:unit && npm run test:integration",
+    "preversion": "node --input-type=commonjs -e \"const {readFileSync}=require('fs');const p=JSON.parse(readFileSync('./package.json','utf8'));if(p.version!==p.claudeCode.extension.version){console.error('[preversion] claudeCode.extension.version ('+p.claudeCode.extension.version+') must match package.json version ('+p.version+') — update both before bumping');process.exit(1)}\"",
+    "pack:dry": "npm pack --dry-run",
+    "version:check": "node --input-type=commonjs -e \"const {readFileSync}=require('fs');const p=JSON.parse(readFileSync('./package.json','utf8'));console.log('name:',p.name,'\\nversion:',p.version,'\\nclaudeCode.version:',p.claudeCode.extension.version,'\\nfiles:',p.files);\""
+  },
+  "keywords": [
+    "claude-code",
+    "novel-writing",
+    "fiction",
+    "writing-assistant",
+    "mcp"
+  ],
+  "author": "mrskwiw@gmail.com",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mrskwiw/claude-novel-writer.git"
+  },
+  "homepage": "https://github.com/mrskwiw/claude-novel-writer#readme",
+  "bugs": {
+    "url": "https://github.com/mrskwiw/claude-novel-writer/issues"
+  },
+  "files": [
+    "dist",
+    "schema.sql",
+    "mcp-server/launch.js",
+    "mcp-server/novel-tools/dist",
+    "mcp-server/novel-tools/package.json",
+    "examples",
+    "agents",
+    "commands",
+    "skills",
+    "templates",
+    ".claude-plugin",
+    "README.md",
+    "QUICKSTART.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "better-sqlite3": "^12.4.1",
+    "dotenv": "^17.2.3",
+    "mcp-sqlite": "^1.0.7",
+    "yaml": "^2.6.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "@vitest/coverage-v8": "^2.1.9",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "claudeCode": {
+    "extension": {
+      "name": "Novel Writer",
+      "description": "AI-assisted novel writing with structure, consistency tracking, and context management",
+      "version": "0.1.1",
+      "mcpServers": {
+        "novel-db": {
+          "description": "SQLite database for novel metadata, characters, and consistency tracking",
+          "command": "npx",
+          "args": [
+            "-y",
+            "mcp-sqlite",
+            "--db-path",
+            "${workspaceFolder}/.novel/data.db"
+          ],
+          "autoStart": true,
+          "env": {
+            "NODE_ENV": "production"
+          }
+        },
+        "novel-tools": {
+          "description": "High-level novel-writing operations (sync, build, context, check)",
+          "command": "novel-tools-mcp",
+          "args": [],
+          "autoStart": true,
+          "env": {
+            "NODE_ENV": "production"
+          }
+        }
+      },
+      "commands": [
+        {
+          "command": "novel.init",
+          "title": "Initialize Novel Project",
+          "description": "Set up novel project structure and database"
+        },
+        {
+          "command": "novel.character.new",
+          "title": "Create Character",
+          "description": "Create a new character profile"
+        },
+        {
+          "command": "novel.world.new",
+          "title": "Create Location/World Element",
+          "description": "Add a new location or world-building element"
+        },
+        {
+          "command": "novel.chapter.new",
+          "title": "Create Chapter",
+          "description": "Start a new chapter"
+        },
+        {
+          "command": "novel.check.consistency",
+          "title": "Check Consistency",
+          "description": "Scan manuscript for contradictions and continuity errors"
+        },
+        {
+          "command": "novel.context.load",
+          "title": "Load Scene Context",
+          "description": "Load relevant story context for current scene"
+        },
+        {
+          "command": "novel.export",
+          "title": "Export Manuscript",
+          "description": "Export novel in various formats"
+        }
+      ],
+      "slashCommands": [
+        {
+          "name": "novel",
+          "description": "Novel Writer CLI - Run novel commands (e.g., /novel init, /novel create character, /novel help)",
+          "handler": "handleNovelCommand"
+        },
+        {
+          "name": "idea",
+          "description": "Capture and explore story ideas"
+        },
+        {
+          "name": "character",
+          "description": "Character development tools"
+        },
+        {
+          "name": "world",
+          "description": "World-building entry and tracking"
+        },
+        {
+          "name": "write",
+          "description": "Enter focused drafting mode"
+        },
+        {
+          "name": "revise",
+          "description": "Revision and editing tools"
+        },
+        {
+          "name": "check",
+          "description": "Consistency and continuity checking"
+        },
+        {
+          "name": "timeline",
+          "description": "View and manage story timeline"
+        },
+        {
+          "name": "threads",
+          "description": "Track and manage plot threads"
+        },
+        {
+          "name": "export",
+          "description": "Format and export manuscript"
+        }
+      ],
+      "fileWatchers": [
+        {
+          "pattern": "characters/*.{yml,yaml}",
+          "onChange": "syncCharacterToDb"
+        },
+        {
+          "pattern": "world/*.{yml,yaml,md}",
+          "onChange": "syncWorldToDb"
+        },
+        {
+          "pattern": "chapters/*.md",
+          "onChange": "syncChapterToDb"
+        },
+        {
+          "pattern": "outline.md",
+          "onChange": "syncOutlineToDb"
+        }
+      ]
+    }
+  }
+}

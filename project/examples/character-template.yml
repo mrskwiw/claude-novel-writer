@@ -1,0 +1,92 @@
+# Character Profile Template
+# Copy this file to your project's characters/ directory and customize
+
+name: Character Name
+fullName: Full Legal Name (optional)
+role: protagonist # Options: protagonist, antagonist, major, minor, background
+summary: |
+  A one-paragraph summary of who this character is.
+  What makes them unique? What's their core essence?
+
+# Physical Attributes
+# Track anything you mention in the manuscript for consistency
+physical:
+  age: "value"
+  eyeColor: "value"
+  hairColor: "value"
+  height: "value"
+  build: "value"
+  distinctiveFeatures: "value"
+  # Add any other physical traits mentioned
+
+# Personality Traits
+personality:
+  core: "value"
+  strengths: "value"
+  flaws: "value"
+  fears: "value"
+  desires: "value"
+  # Add any other personality aspects
+
+# Background Information
+background:
+  occupation: "value"
+  education: "value"
+  family: "value"
+  hometown: "value"
+  significantEvents: "value"
+  # Add any other background details
+
+# Skills & Abilities
+skills:
+  primarySkill: "value"
+  secondarySkill: "value"
+  # Add any other skills
+
+# Voice & Speech Patterns
+# How this character sounds - critical for dialogue consistency
+voice:
+  patterns:
+    - Speech pattern 1
+    - Speech pattern 2
+    - How they phrase things
+  quirks:
+    - Physical quirk when speaking
+    - Verbal tic or catchphrase
+  vocabulary: |
+    Description of word choice:
+    Formal/informal? Technical/simple? Regional dialect?
+
+# Relationships
+# Connections to other characters
+relationships:
+  - character: Other Character Name
+    type: friend # friend, enemy, family, romantic, mentor, etc.
+    description: How they relate, history together
+
+  - character: Another Character
+    type: rival
+    description: Competitive dynamic
+
+# Character Arc
+# How they change through the story
+arc:
+  startingState: |
+    Who they are at the beginning.
+    Internal state, beliefs, situation.
+
+  endingState: |
+    Who they become by the end.
+    How they've changed or grown.
+
+  midpointCrisis: |
+    The turning point challenge.
+    What forces them to change?
+
+# Additional Notes
+# Anything else important
+notes: |
+  - Important plot connections
+  - Themes this character represents
+  - Author reminders
+  - Research notes

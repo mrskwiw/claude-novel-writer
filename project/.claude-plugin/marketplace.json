@@ -1,0 +1,24 @@
+{
+  "name": "claude-novel-writer",
+  "owner": {
+    "name": "mrskwiw"
+  },
+  "plugins": [
+    {
+      "name": "claude-novel-writer",
+      "source": "./",
+      "description": "AI-assisted novel writing for Claude Code — structure, consistency tracking, context assembly, and prose analysis",
+      "author": {
+        "name": "mrskwiw",
+        "email": "mrskwiw@gmail.com"
+      },
+      "keywords": [
+        "novel",
+        "writing",
+        "fiction",
+        "storytelling",
+        "manuscript"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+# Location/World Element Template
+# Copy this file to your project's world/ directory and customize
+
+name: Location Name
+type: city # city, building, room, country, planet, etc.
+parentLocation: Parent Location Name (optional) # e.g., room -> building -> city
+
+description: |
+  Main description of this location.
+  What does it look like? What's the atmosphere?
+  What's important about this place?
+
+# Detailed Attributes
+details:
+  size: "value"
+  population: "value"
+  climate: "value"
+  architecture: "value"
+  atmosphere: "value"
+  keyFeatures: "value"
+  # Add any other relevant details
+
+# Location-Specific Rules
+# Important for consistency (e.g., technology level, customs, laws)
+rules:
+  - Rule or constraint about this location
+  - Another rule (e.g., "No technology works here")
+  - Social norm or custom
+
+# First Appearance
+firstAppearance: Chapter 3 # When is this location introduced?
+
+# Additional Notes
+notes: |
+  - Significance to plot
+  - Symbolic meaning
+  - Historical background
+  - Research notes
+  - Scenes that take place here

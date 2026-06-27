@@ -1,0 +1,29 @@
+# Valid Test Location
+name: "SETI Observatory"
+type: building
+description: |
+  A remote research facility in the Nevada desert, housing the
+  world's most advanced radio telescopes.
+
+sensory:
+  sight: "Massive white satellite dishes against red desert landscape"
+  sound: "Constant hum of equipment, desert wind"
+  smell: "Dust, coffee, electronics"
+  touch: "Cold metal surfaces, dry desert air"
+
+atmosphere: "Isolated, focused, tense with anticipation"
+
+history: |
+  Built in 1985, expanded in 2010 with new telescope array.
+  Site of several groundbreaking discoveries.
+
+significance: |
+  Primary setting for first act. Where Sarah works and the
+  signal is first detected.
+
+notes: |
+  Key locations within:
+  - Main control room (Sarah's domain)
+  - Telescope array (outdoor scenes)
+  - Break room (character interactions)
+  - Server room (climactic sequence in Act 2)

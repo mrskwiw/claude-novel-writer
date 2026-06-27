@@ -1,0 +1,49 @@
+# Development
+src/
+tsconfig.json
+tsconfig*.json
+vitest.config.ts
+vitest.config*.ts
+.eslintrc*
+.eslintignore
+.prettierrc*
+.editorconfig
+
+# Tests
+tests/
+**/*.test.ts
+**/*.spec.ts
+coverage/
+
+# Documentation (workspace-level)
+docs/
+archive/
+
+# Build artifacts not needed at runtime
+*.tsbuildinfo
+*.map
+
+# Environment
+.env
+.env.*
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.github/
+.git/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Keep in package (dist, src, schema.sql, mcp-server, novel, examples, README.md, QUICKSTART.md, LICENSE, CHANGELOG.md)

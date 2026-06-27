@@ -1,0 +1,42 @@
+export enum NovelErrorCode {
+  // Validation
+  VALIDATION_FAILED = 'VALIDATION_FAILED',
+  MISSING_REQUIRED_FIELD = 'MISSING_REQUIRED_FIELD',
+  INVALID_FIELD_VALUE = 'INVALID_FIELD_VALUE',
+
+  // Resource
+  NOT_FOUND = 'NOT_FOUND',
+  ALREADY_EXISTS = 'ALREADY_EXISTS',
+  CONFLICT = 'CONFLICT',
+
+  // Context
+  CONTEXT_REQUIRED_BUDGET_EXCEEDED = 'CONTEXT_REQUIRED_BUDGET_EXCEEDED',
+  CONTEXT_CONTRACT_NOT_FOUND = 'CONTEXT_CONTRACT_NOT_FOUND',
+  CONTEXT_FETCH_FAILED = 'CONTEXT_FETCH_FAILED',
+
+  // Canon
+  CANON_CONFLICT_DETECTED = 'CANON_CONFLICT_DETECTED',
+
+  // Graph
+  GRAPH_NODE_NOT_FOUND = 'GRAPH_NODE_NOT_FOUND',
+  GRAPH_CYCLE_DETECTED = 'GRAPH_CYCLE_DETECTED',
+
+  // Database
+  DB_QUERY_FAILED = 'DB_QUERY_FAILED',
+  DB_MIGRATION_FAILED = 'DB_MIGRATION_FAILED',
+
+  // General
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
+  NOT_IMPLEMENTED = 'NOT_IMPLEMENTED',
+}
+
+export class NovelError extends Error {
+  constructor(
+    public readonly code: NovelErrorCode,
+    message: string,
+    public readonly details?: Record<string, unknown>
+  ) {
+    super(message)
+    this.name = 'NovelError'
+  }
+}

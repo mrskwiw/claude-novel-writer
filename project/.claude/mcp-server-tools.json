@@ -1,0 +1,354 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/mcp-tools-v1.json",
+  "name": "novel-writer",
+  "version": "0.1.0",
+  "description": "Claude Novel Writer Extension - MCP tools for AI subagents",
+  "tools": [
+    {
+      "name": "novel_init",
+      "description": "Initialize a new novel project with database and directory structure",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Novel title"
+          },
+          "author": {
+            "type": "string",
+            "description": "Author name"
+          },
+          "genre": {
+            "type": "string",
+            "description": "Genre or category"
+          },
+          "targetWords": {
+            "type": "number",
+            "description": "Target word count (default: 80000)"
+          },
+          "phase": {
+            "type": "string",
+            "enum": ["ideation", "planning", "drafting", "revising", "polishing", "production", "distribution"],
+            "description": "Starting writing phase"
+          }
+        }
+      }
+    },
+    {
+      "name": "novel_check_consistency",
+      "description": "Run all consistency checks (characters, timeline, world rules, plot threads)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "verbose": {
+            "type": "boolean",
+            "description": "Show detailed information including IDs and dates"
+          }
+        }
+      }
+    },
+    {
+      "name": "novel_check_characters",
+      "description": "Check character attribute consistency only",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "verbose": {
+            "type": "boolean",
+            "description": "Show detailed information"
+          }
+        }
+      }
+    },
+    {
+      "name": "novel_check_timeline",
+      "description": "Check timeline and chronological consistency",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "verbose": {
+            "type": "boolean",
+            "description": "Show detailed information"
+          }
+        }
+      }
+    },
+    {
+      "name": "novel_check_world_rules",
+      "description": "Check for violations of established world rules",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "verbose": {
+            "type": "boolean",
+            "description": "Show detailed information"
+          }
+        }
+      }
+    },
+    {
+      "name": "novel_check_plot_threads",
+      "description": "Check for unresolved plot threads",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "verbose": {
+            "type": "boolean",
+            "description": "Show detailed information"
+          }
+        }
+      }
+    },
+    {
+      "name": "novel_check_list",
+      "description": "List all open consistency issues with optional filtering",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["error", "warning", "info"],
+            "description": "Filter by severity level"
+          },
+          "verbose": {
+            "type": "boolean",
+            "description": "Show detailed information"
+          }
+        }
+      }
+    },
+    {
+      "name": "novel_check_resolve",
+      "description": "Mark a consistency issue as resolved",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "Issue ID to resolve"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional resolution notes"
+          }
+        },
+        "required": ["id"]
+      }
+    },
+    {
+      "name": "novel_check_acknowledge",
+      "description": "Acknowledge an intentional inconsistency (won't be flagged again)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "Issue ID to acknowledge"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional explanation"
+          }
+        },
+        "required": ["id"]
+      }
+    },
+    {
+      "name": "novel_check_false_positive",
+      "description": "Mark a consistency issue as incorrectly detected",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "Issue ID to mark as false positive"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional explanation of why it's false"
+          }
+        },
+        "required": ["id"]
+      }
+    },
+    {
+      "name": "novel_sync_all",
+      "description": "Sync all content bidirectionally between files and database",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "novel_sync_characters",
+      "description": "Sync character YAML files with database",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "novel_sync_locations",
+      "description": "Sync location YAML files with database",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "novel_sync_chapters",
+      "description": "Sync chapter markdown files with database",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "novel_list_characters",
+      "description": "List all characters with optional role filtering",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "Filter by role (e.g., 'protagonist', 'antagonist')"
+          }
+        }
+      }
+    },
+    {
+      "name": "novel_list_locations",
+      "description": "List all locations with optional type filtering",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Filter by type (e.g., 'building', 'outdoor')"
+          }
+        }
+      }
+    },
+    {
+      "name": "novel_list_chapters",
+      "description": "List all chapters with status and word counts",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "novel_scene_add",
+      "description": "Add a new scene to a chapter with metadata",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "chapterFile": {
+            "type": "string",
+            "description": "Path to chapter markdown file"
+          },
+          "title": {
+            "type": "string",
+            "description": "Scene title"
+          },
+          "pov": {
+            "type": "string",
+            "description": "POV character name"
+          },
+          "location": {
+            "type": "string",
+            "description": "Scene location"
+          },
+          "timeOfDay": {
+            "type": "string",
+            "description": "Time of day"
+          },
+          "tensionLevel": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10,
+            "description": "Tension level (1-10)"
+          },
+          "purpose": {
+            "type": "string",
+            "description": "Scene purpose"
+          },
+          "content": {
+            "type": "string",
+            "description": "Scene content (prose)"
+          }
+        },
+        "required": ["chapterFile", "title", "content"]
+      }
+    },
+    {
+      "name": "novel_scene_list",
+      "description": "List all scenes in a chapter",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "chapterFile": {
+            "type": "string",
+            "description": "Path to chapter markdown file"
+          }
+        },
+        "required": ["chapterFile"]
+      }
+    },
+    {
+      "name": "novel_scene_stats",
+      "description": "Get statistics for scenes in a chapter",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "chapterFile": {
+            "type": "string",
+            "description": "Path to chapter markdown file"
+          }
+        },
+        "required": ["chapterFile"]
+      }
+    },
+    {
+      "name": "novel_session_start",
+      "description": "Start a new writing session",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["drafting", "revising", "planning", "editing"],
+            "description": "Type of writing session"
+          }
+        }
+      }
+    },
+    {
+      "name": "novel_session_end",
+      "description": "End the current writing session",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string",
+            "description": "Optional session notes"
+          }
+        }
+      }
+    },
+    {
+      "name": "novel_progress_show",
+      "description": "Show writing progress and statistics",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": ["today", "week", "month", "all"],
+            "description": "Time period for progress report"
+          }
+        }
+      }
+    }
+  ]
+}

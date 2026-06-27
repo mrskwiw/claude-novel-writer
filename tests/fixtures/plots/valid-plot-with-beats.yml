@@ -1,0 +1,50 @@
+# Valid Test Plot with Beats
+name: "The Mystery of the Signal"
+type: main
+status: active
+priority: 5
+
+description: |
+  A strange extraterrestrial signal detected by SETI leads to a
+  discovery that challenges humanity's understanding of the universe.
+
+beats:
+  - scene: "1.1"
+    description: "Signal first detected by Sarah's team"
+    type: setup
+  - scene: "3.5"
+    description: "Pattern reveals intelligent design"
+    type: development
+  - scene: "7.2"
+    description: "Source location triangulated"
+    type: development
+  - scene: "12.8"
+    description: "Sarah decodes the message"
+    type: climax
+  - scene: "15.3"
+    description: "Humanity responds to the signal"
+    type: resolution
+
+characters:
+  - name: "Sarah Chen"
+    role: "protagonist"
+    arc: "From isolated scientist to team leader"
+  - name: "Alex Rivers"
+    role: "ally"
+    arc: "From skeptic to believer"
+
+themes:
+  - "First contact"
+  - "Scientific responsibility"
+  - "Trust and collaboration"
+
+dependencies:
+  - "Character arc: Sarah's redemption"
+
+notes: |
+  This plot thread drives the main narrative.
+  Foreshadowing in early chapters about the signal's pattern.
+  Payoff when Sarah realizes the signal is a warning.
+
+introduced_in: 1
+first_appearance: "1.1"
