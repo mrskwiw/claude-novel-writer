@@ -14,6 +14,49 @@ Single source of truth for project status. All tasks, features, decisions, and g
 
 ---
 
+## v0.2.0 Improvement Backlog (from 2026-06-27 tri-agent review)
+
+> Source: a code/design/craft review against the project purpose. NOTE: much of
+> this file's older "open" content is stale (duplicates of completed work);
+> trust the code + BUGS.md over old TODO blocks.
+
+### Tier 0 — correctness (DONE 2026-06-27, see BUGS.md CODE-01..04, DOC-01)
+- [x] `create chapter` syncs to DB + auto-numbers
+- [x] CLI resolves real projectId (no hardcoded 1)
+- [x] `context build` wired to the ContextPolicyEngine
+- [x] chapter summary moved to generation layer (AI passthrough, ≤5 sentences)
+- [x] plot beat↔scene sync — already done in SPEC-02; stale doc archived
+
+### Tier 1 — craft capabilities (new)
+- [~] `novel report` — one-screen manuscript-health rollup (in progress 2026-06-27)
+- [~] read-aloud TTS — actually speak prose via OS TTS (in progress 2026-06-27)
+- [~] `analyze voice` — manuscript-wide character/narrator voice similarity + drift (in progress 2026-06-27)
+- [ ] `novel extract <chapter>` — discovery-writer path: scan drafted prose for
+      proper-noun/speaker candidates, offer one-keystroke entity creation (the
+      biggest divergence from the "support discovery AND planning" philosophy)
+- [ ] severity tuning — make prose flags density-relative to `style-targets.yml`
+      + per-project allow-list; soften imperative copy (Le Guin "don't condemn all telling")
+- [x] session stop-note ("stop while you know what happens next") — ALREADY DONE:
+      `session end --note "..."` writes `stop_note`; `session start` resurfaces it
+      (the review's `--next` was a naming mismatch)
+- [ ] `novel revise <chapter> --apply <safe-categories>` — diff-gated mechanical
+      fixes (doubled words, intensifiers, adverb tags) closing the feedback→fix loop
+- [ ] story-structure templates — `novel structure apply|status`
+      (Save the Cat / 3-act / Hero's Journey), beats mapped to word-count positions
+- [ ] theme tracking — `novel theme add|trace` (deterministic motif-density scan)
+- [ ] opening-line / hook-strength *analysis* (the generator exists; the scorer doesn't)
+
+### Tier 2 — hygiene
+- [ ] populate or remove `project/src/data/features.ts` (empty array; FeatureType
+      union is copied from a different app and doesn't match novel subsystems)
+- [ ] reconcile/rewrite stale status docs: `IMPLEMENTATION_STATUS.md` (omits ~12
+      shipped commands, self-contradictory), `core spec.md` (contradicts composite
+      spec; model `claude-3`), `FUTURE_FEATURES.md` (lists shipped features as future)
+- [ ] (deferred, larger) machine-readable CLI schema (`help --json`) + cli-operator
+      subagent — the composite spec's named "next leverage point"
+
+---
+
 ## Critical — Must fix before production use
 
 ### GAP-01: Connect Context Engine to AI Generation ✓ COMPLETE 2026-05-29
