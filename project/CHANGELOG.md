@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (Tier-0 correctness)
+- `create chapter` now syncs the new chapter to the database and auto-numbers it
+  (was: never synced, hardcoded chapter 1) — chapters are immediately visible to
+  analysis/context/consistency.
+- The CLI resolves the real project id from the database instead of hardcoding 1.
+- `context build` is wired to the ContextPolicyEngine (was a stub) — assembles
+  and renders real context blocks.
+- Chapter summaries moved out of the deterministic sync layer (which wrote a
+  placeholder) into the generation layer: `generate summary --chapter N`
+  produces a ≤5-sentence summary via Claude, using the API when
+  `ANTHROPIC_API_KEY` is set and otherwise the Claude Code session (passthrough).
+
+### Added (v0.2.0 craft features)
+- **`novel report`** — one-screen manuscript-health dashboard: tension sparkline,
+  open plot threads, unresolved/overdue promises, scenes missing a purpose,
+  chapters off their style targets, and total `[TK]` markers. Read-only.
+- **`novel readaloud`** — actually speaks a chapter/scene/text via the OS TTS
+  engine (Windows SAPI, macOS `say`, Linux espeak/spd-say); `--out` writes audio.
+- **`novel analyze voice`** — manuscript-wide character-voice analysis: flags
+  voices that sound too alike and voices that drift across chapters.
+- **`novel extract --chapter N`** — discovery-writer path: scans drafted prose
+  for new character/location candidates and proposes ready-to-run create commands.
+
 ## [0.1.1] - 2026-06-26
 
 ### Changed

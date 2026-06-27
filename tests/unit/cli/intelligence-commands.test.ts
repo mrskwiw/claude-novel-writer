@@ -100,18 +100,33 @@ function makeExtensionStub() {
     findPath: vi.fn().mockResolvedValue(null),
   };
 
+  const policyEngine = {
+    buildContext: vi.fn().mockResolvedValue({
+      projectId: '1',
+      contractId: 'scene_continuation',
+      blocks: [],
+      totalTokens: 0,
+      omitted: [],
+      warnings: [],
+      deterministicFingerprint: 'abc123def4567890',
+    }),
+  };
+
   return {
     projectId: 1,
+    getProjectId: vi.fn().mockReturnValue(1),
     getKnowledgeService: vi.fn().mockReturnValue(knowledgeSvc),
     getCanonService: vi.fn().mockReturnValue(canonSvc),
     getPromiseService: vi.fn().mockReturnValue(promiseSvc),
     getContextContractService: vi.fn().mockReturnValue(contractSvc),
+    getContextPolicyEngine: vi.fn().mockReturnValue(policyEngine),
     getNarrativeGraphService: vi.fn().mockReturnValue(graphSvc),
     _knowledgeSvc: knowledgeSvc,
     _canonSvc: canonSvc,
     _promiseSvc: promiseSvc,
     _contractSvc: contractSvc,
     _graphSvc: graphSvc,
+    _policyEngine: policyEngine,
   };
 }
 
@@ -423,11 +438,13 @@ describe('handleContextCommand', () => {
     expect(ext._contractSvc.getById).toHaveBeenCalledWith('scene_continuation');
   });
 
-  it('returns stub message for "build" when not wired', async () => {
+  it('builds context for a valid contract via the policy engine', async () => {
     const ext = makeExtensionStub();
     const output = makeOutput();
     await handleContextCommand(makeArgs('build', [], { contract: 'scene_continuation' }), '/tmp', output, ext as never);
-    expect(output.info).toHaveBeenCalledWith(expect.stringContaining('Context build not yet wired'));
+    // Now wired: it invokes the policy engine and renders the result, not a stub.
+    expect(ext._policyEngine.buildContext).toHaveBeenCalled();
+    expect(output.heading).toHaveBeenCalledWith(expect.stringContaining('Context'));
   });
 
   it('outputs error for "build" without --contract', async () => {

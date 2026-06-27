@@ -179,6 +179,16 @@ export const analyzeCommand: Command = {
         await handleAnalyzeCommand(args, context.cwd, context.output);
       },
     },
+    {
+      name: 'voice',
+      description: 'Manuscript-wide character voice analysis: flag too-similar voices and voices that drift across chapters',
+      flags: [
+        { name: 'character', description: 'Focus the report on a single character by name', type: 'string' },
+      ],
+      handler: async (args, context) => {
+        await handleAnalyzeCommand(args, context.cwd, context.output);
+      },
+    },
   ],
   examples: [
     '/novel analyze tension-arc',
@@ -202,5 +212,6 @@ export const analyzeCommand: Command = {
     '/novel analyze show-tell --chapter 1',
     '/novel analyze style --chapter 1',
     '/novel analyze style --all',
+    '/novel analyze voice',
   ],
 };

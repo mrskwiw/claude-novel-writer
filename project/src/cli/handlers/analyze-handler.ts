@@ -20,6 +20,7 @@ import { ReadAloudPreparer } from '../../analysis/read-aloud.js';
 import { DevelopmentalAnalyzer } from '../../analysis/developmental-analyzer.js';
 import { CopyEditor } from '../../analysis/copy-editor.js';
 import { StyleTargetAnalyzer, type StyleTargetReport } from '../../analysis/style-target-analyzer.js';
+import { VoiceAnalyzer, type VoiceReport } from '../../analysis/voice-analyzer.js';
 import { loadStyleTargets } from '../../analysis/style-targets.js';
 import YAML from 'yaml';
 
@@ -87,10 +88,13 @@ export async function handleAnalyzeCommand(
     case 'style':
       await handleStyleTargets(args, projectPath, output);
       break;
+    case 'voice':
+      await handleVoice(args, projectPath, output);
+      break;
     default:
       output.error(`Unknown analyze subcommand: ${subcommand}`);
       output.info(
-        'Available: tension-arc, pov-balance, chapter-lengths, pacing, conflict, prose, sentences, dialogue, read-aloud, rhythm, scenes, subplots, plot-holes, copy, dialogue-reader, sensory, show-tell, style'
+        'Available: tension-arc, pov-balance, chapter-lengths, pacing, conflict, prose, sentences, dialogue, read-aloud, rhythm, scenes, subplots, plot-holes, copy, dialogue-reader, sensory, show-tell, style, voice'
       );
   }
 }
@@ -953,6 +957,87 @@ function statusIcon(status: 'ok' | 'low' | 'high' | 'na'): string {
     case 'low': return '⚠ low';
     case 'high': return '⚠ high';
     default: return '—';
+  }
+}
+
+// ─── VOICE: manuscript-level character voice analysis ─────────────────────────
+
+/**
+ * Handle `analyze voice [--character "Name"]`
+ *
+ * Runs VoiceAnalyzer across the whole manuscript and reports per-character
+ * voice fingerprints, too-similar voice pairs, and voices that drift across
+ * chapters. With --character, narrows the per-character section to one name.
+ */
+async function handleVoice(
+  args: ParsedArgs,
+  projectPath: string,
+  output: OutputFormatter
+): Promise<void> {
+  try {
+    const focus = args.flags['character'] as string | undefined;
+    const report: VoiceReport = await new VoiceAnalyzer(projectPath).analyzeManuscript();
+
+    if (report.characters.length === 0) {
+      output.info('No character dialogue found in chapters/. Add chapters with attributed dialogue first.');
+      return;
+    }
+
+    output.heading('Character Voice Analysis');
+    output.newline();
+
+    const shown = focus
+      ? report.characters.filter((c) => c.character.toLowerCase() === focus.toLowerCase())
+      : report.characters;
+
+    if (focus && shown.length === 0) {
+      output.warning(`No measured voice for "${focus}". Known characters: ${report.characters.map((c) => c.character).join(', ')}`);
+      return;
+    }
+
+    output.info('── Voice Fingerprints ────────────────────');
+    const rows = shown.map((c) => ({
+      Character: c.character,
+      Lines: c.lineCount,
+      Chapters: c.chapterCount,
+      'Avg sentence': `${c.fingerprint.avgSentenceLength} w`,
+      'Avg word': `${c.fingerprint.avgWordLength} ch`,
+      'Lexical variety': c.fingerprint.typeTokenRatio.toFixed(2),
+    }));
+    output.table(rows);
+    output.newline();
+
+    output.info('── Voices That Sound Alike ───────────────');
+    const similar = focus
+      ? report.similarPairs.filter(
+          (p) => p.a.toLowerCase() === focus.toLowerCase() || p.b.toLowerCase() === focus.toLowerCase()
+        )
+      : report.similarPairs;
+    if (similar.length === 0) {
+      output.success('No two characters sound too alike.');
+    } else {
+      for (const p of similar) {
+        output.warning(`  ${p.a} ↔ ${p.b}  (distance ${p.distance}; lower = more alike)`);
+      }
+      output.dim('  Differentiate their sentence length, word choice, or verbal tics.');
+    }
+    output.newline();
+
+    output.info('── Voices That Drift Across Chapters ─────');
+    const drifting = focus
+      ? report.drifting.filter((d) => d.character.toLowerCase() === focus.toLowerCase())
+      : report.drifting;
+    if (drifting.length === 0) {
+      output.success('No character voice drifts noticeably across chapters.');
+    } else {
+      for (const d of drifting) {
+        const chs = d.outlierChapters.length > 0 ? ` [${d.outlierChapters.join(', ')}]` : '';
+        output.warning(`  ${d.character}  (max deviation ${d.maxDistance})${chs}`);
+      }
+      output.dim('  Re-read the flagged chapters to keep the character sounding consistent.');
+    }
+  } catch (err) {
+    output.error(`Voice analysis failed: ${(err as Error).message}`);
   }
 }
 

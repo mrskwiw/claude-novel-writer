@@ -33,6 +33,9 @@ import { researchCommand } from './commands/research.js';
 import { betaCommand } from './commands/beta.js';
 import { queryCommand } from './commands/query.js';
 import { seriesCommand } from './commands/series.js';
+import { reportCommand } from './commands/report.js';
+import { readaloudCommand } from './commands/readaloud.js';
+import { extractCommand } from './commands/extract.js';
 
 export class CommandRegistry {
   private commands: Map<string, Command> = new Map();
@@ -125,6 +128,11 @@ export class CommandRegistry {
 
     // Series management — PROC-11
     this.register(seriesCommand);
+
+    // v0.2.0 craft additions
+    this.register(reportCommand);     // manuscript health rollup
+    this.register(readaloudCommand);  // text-to-speech read-aloud
+    this.register(extractCommand);    // discovery-writer entity extraction
   }
 
   /**

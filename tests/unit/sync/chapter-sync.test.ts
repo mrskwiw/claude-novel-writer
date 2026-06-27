@@ -272,23 +272,19 @@ describe('ChapterSync', () => {
     });
   });
 
-  // ─── generateChapterSummary ────────────────────────────────────────────────
+  // (Chapter summaries are now produced by the generation layer
+  //  GenerationManager.generateChapterSummary — see generate-handler — so the
+  //  deterministic sync layer no longer fabricates them.)
 
-  describe('generateChapterSummary()', () => {
-    it('should return a placeholder summary for existing chapter', async () => {
-      // Create a temp chapter file to read from
-      const filePath = await createTestChapterFile(projectPath, 1, 'Chapter One');
-      mockClient.seed('chapters', [
-        { id: 1, project_id: projectId, chapter_number: 1, file_path: filePath },
-      ]);
+  // ─── getNextChapterNumber ──────────────────────────────────────────────────
 
-      const summary = await sync.generateChapterSummary(1);
-      expect(summary).toContain('chapter 1');
+  describe('getNextChapterNumber()', () => {
+    it('returns 1 when the project has no chapters', async () => {
+      const next = await sync.getNextChapterNumber();
+      expect(next).toBe(1);
     });
-
-    it('should throw when chapter not found', async () => {
-      await expect(sync.generateChapterSummary(999)).rejects.toThrow('Chapter 999 not found');
-    });
+    // The max(chapter_number)+1 path is covered by the create-chapter integration
+    // smoke test (the in-memory mock does not implement SQL MAX()).
   });
 
   // ─── word count / markdown cleanup ────────────────────────────────────────
