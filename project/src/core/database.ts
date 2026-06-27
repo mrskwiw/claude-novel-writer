@@ -195,6 +195,18 @@ export class DatabaseManager {
   }
 
   /**
+   * Return the id of the first (lowest-id) project in this database, or
+   * undefined if none exists. Each `.novel/data.db` holds one project, so this
+   * resolves "the project for this directory" without hardcoding an id.
+   */
+  async getFirstProjectId(): Promise<number | undefined> {
+    const results = await this.mcpClient.readQuery<{ id: number }>(
+      'SELECT id FROM projects ORDER BY id LIMIT 1'
+    );
+    return results.length > 0 ? Number(results[0].id) : undefined;
+  }
+
+  /**
    * Get project health dashboard
    */
   async getProjectHealth(projectId: number): Promise<Record<string, unknown> | null> {

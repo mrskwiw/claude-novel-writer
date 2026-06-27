@@ -324,39 +324,15 @@ export class ChapterSync {
   }
 
   /**
-   * Generate AI summary for a chapter
-   * This would be called after chapter is synced
+   * Return the next available chapter number for this project — one more than
+   * the current maximum, or 1 when the project has no chapters yet.
    */
-  async generateChapterSummary(chapterId: number): Promise<string> {
-    // Get chapter content
-    const chapterQuery = 'SELECT file_path FROM chapters WHERE id = ?';
-    const chapter = await this.mcpClient.readQuery<{ file_path: string }>(chapterQuery, [chapterId]);
-
-    if (chapter.length === 0) {
-      throw new Error(`Chapter ${chapterId} not found`);
-    }
-
-    const content = await readFile(chapter[0].file_path, 'utf-8');
-
-    // Remove frontmatter and markdown syntax for summary
-    const cleanContent = content
-      .replace(/^---\n[\s\S]*?\n---\n/, '')
-      .replace(/^#{1,6}\s+/gm, '')
-      .substring(0, 2000); // First 2000 chars for context
-
-    // This would use Claude to generate summary
-    // For now, return a placeholder
-    const summary = `[Summary to be generated for chapter ${chapterId}]`;
-
-    // Update chapter with summary
-    const updateQuery = `
-      UPDATE chapters
-      SET summary = ?,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
-    await this.mcpClient.writeQuery(updateQuery, [summary, chapterId]);
-
-    return summary;
+  async getNextChapterNumber(): Promise<number> {
+    const rows = await this.mcpClient.readQuery<{ maxNum: number | null }>(
+      'SELECT MAX(chapter_number) AS maxNum FROM chapters WHERE project_id = ?',
+      [this.projectId]
+    );
+    const max = rows.length > 0 && rows[0].maxNum != null ? Number(rows[0].maxNum) : 0;
+    return max + 1;
   }
 }

@@ -50,6 +50,9 @@ export async function handleGenerateCommand(
     case 'synopsis':
       await handleGenerateSynopsis(args, projectPath, output, injectedExtension);
       break;
+    case 'summary':
+      await handleGenerateSummary(args, projectPath, output, injectedExtension);
+      break;
     case 'pitch':
       await handleGeneratePitch(args, projectPath, output, injectedExtension);
       break;
@@ -72,7 +75,95 @@ export async function handleGenerateCommand(
       await handleGenerateSketch(args, projectPath, output, injectedExtension);
       break;
     default:
-      output.error('Unknown generation type. Use: character, location, continue, dialogue, describe, plot, next-sentence, synopsis, pitch, query-letter, comps, opening-lines, name, premise, sketch');
+      output.error('Unknown generation type. Use: character, location, continue, dialogue, describe, plot, next-sentence, synopsis, summary, pitch, query-letter, comps, opening-lines, name, premise, sketch');
+  }
+}
+
+/**
+ * Handle `generate summary --chapter N` — summarize a chapter (≤5 sentences) for
+ * story-context memory. Uses the live API when ANTHROPIC_API_KEY is set,
+ * otherwise hands the prompt to the Claude Code session (passthrough).
+ */
+async function handleGenerateSummary(
+  args: ParsedArgs,
+  projectPath: string,
+  output: OutputFormatter,
+  injectedExtension?: NovelWriterExtension
+): Promise<void> {
+  try {
+    const chapterNum = args.flags['chapter'] as number | undefined;
+    if (chapterNum === undefined) {
+      output.error('Specify the chapter to summarize: /novel generate summary --chapter N');
+      return;
+    }
+
+    // Resolve the chapter file by leading numeric prefix.
+    const { readdir, readFile } = await import('fs/promises');
+    const chaptersDir = join(projectPath, 'chapters');
+    let entries: string[];
+    try {
+      entries = (await readdir(chaptersDir)).filter((f) => f.endsWith('.md'));
+    } catch {
+      output.error(`chapters/ directory not found at ${chaptersDir}`);
+      return;
+    }
+    const padded = String(chapterNum).padStart(2, '0');
+    const match = entries.find(
+      (f) => f.startsWith(padded) || f.includes(`-${padded}`) || f.includes(`-${chapterNum}`)
+    );
+    if (!match) {
+      output.error(`No chapter file found for chapter ${chapterNum} in ${chaptersDir}`);
+      return;
+    }
+
+    const raw = await readFile(join(chaptersDir, match), 'utf-8');
+    // Pull the title from frontmatter if present, then strip frontmatter + markup.
+    const titleMatch = raw.match(/^title:\s*["']?(.+?)["']?\s*$/m);
+    const title = titleMatch ? titleMatch[1] : undefined;
+    const prose = raw
+      .replace(/^---\n[\s\S]*?\n---\n/, '')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/^#{1,6}\s+/gm, '')
+      .trim();
+
+    if (!prose) {
+      output.error(`Chapter ${chapterNum} has no prose to summarize yet.`);
+      return;
+    }
+
+    // Resolve the real project id (avoids the projectId=1 default).
+    const extension = injectedExtension || new NovelWriterExtension(projectPath);
+    if (extension.getProjectId() === undefined) {
+      await extension.loadProjectId();
+    }
+    const mcpClient = (extension as unknown as { mcpClient: import('../../core/database.js').MCPClient }).mcpClient;
+    const projectId = extension.getProjectId() ?? 1;
+
+    const generator = new GenerationManager(mcpClient, projectId);
+    const result = await generator.generateChapterSummary(prose, title);
+
+    if (result.passthrough) {
+      output.heading(`Chapter ${chapterNum} summary — generate it below`);
+      output.info('No ANTHROPIC_API_KEY set, so this session will write the summary.');
+      output.newline();
+      output.code(result.content);
+      output.newline();
+      output.info(
+        `Then add it to the chapter as a \`summary: "..."\` frontmatter field in ` +
+        `chapters/${match}, and run: novel-writer sync chapters`
+      );
+    } else {
+      output.success(`Chapter ${chapterNum} summary:`);
+      output.newline();
+      output.code(result.content);
+      output.newline();
+      output.info(
+        `Save it: add \`summary: "${result.content.replace(/"/g, "'").slice(0, 60)}..."\` to ` +
+        `chapters/${match} frontmatter, then run: novel-writer sync chapters`
+      );
+    }
+  } catch (err) {
+    output.error(`Summary generation failed: ${(err as Error).message}`);
   }
 }
 

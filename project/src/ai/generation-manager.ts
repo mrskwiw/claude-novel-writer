@@ -70,6 +70,42 @@ export class GenerationManager {
   }
 
   /**
+   * Summarize a chapter in up to 5 sentences for story-context memory.
+   *
+   * Routes through `IClaudeClient`, so it works two ways automatically:
+   *  - With ANTHROPIC_API_KEY → the API returns the summary text.
+   *  - Without a key → PassthroughClaudeClient returns the assembled PROMPT and
+   *    `passthrough: true`; the Claude Code session that ran the command does the
+   *    summarizing. Either way the caller persists the result to the chapter's
+   *    `summary:` frontmatter.
+   *
+   * @param chapterText - chapter prose (frontmatter/markup already stripped)
+   * @param title       - optional chapter title, for prompt context
+   */
+  async generateChapterSummary(
+    chapterText: string,
+    title?: string
+  ): Promise<{ content: string; passthrough: boolean }> {
+    const heading = title ? `Chapter: "${title}"` : 'Chapter';
+    const prompt = [
+      'Summarize the following chapter in NO MORE THAN 5 sentences, for use as',
+      'story-context memory. Capture the key events and what changes by the',
+      "chapter's end — not just the opening atmosphere. Write plain prose.",
+      'Output ONLY the summary: no preamble, labels, headings, or quotation marks.',
+      '',
+      heading,
+      '---',
+      chapterText.trim(),
+    ].join('\n');
+
+    const response = await this.claude.generateStructured(prompt, {
+      temperature: 0.3,
+      maxTokens: 400,
+    });
+    return { content: response.content, passthrough: Boolean(response.passthrough) };
+  }
+
+  /**
    * Generate character profile from description.
    * When options.count > 1, instructs Claude to return that many distinct profile options,
    * numbered, and parses them into alternatives[].

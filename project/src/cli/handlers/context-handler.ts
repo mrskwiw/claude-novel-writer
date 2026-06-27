@@ -134,22 +134,52 @@ async function handleBuild(
     return;
   }
 
-  // Context build is not yet fully wired to fetchers — provide a helpful stub response
-  output.info('Context build not yet wired to fetchers — use /novel context contracts to list available contracts');
-  output.dim(`Requested contract: ${contractId}`);
+  if (!extension) {
+    output.error('No active project. Run /novel init first.');
+    return;
+  }
+  const projectId = extension.getProjectId();
+  if (projectId === undefined) {
+    output.error('No project loaded for this directory.');
+    return;
+  }
 
-  if (extension) {
-    try {
-      const svc = getContractService(extension);
-      const contract = svc.getById(contractId);
-      if (contract) {
-        output.info(`Contract "${contract.name}" found. When wired, this will build up to ${contract.maxTokens} tokens of context.`);
-        output.dim(`Required context types: ${contract.required.map(r => r.type).join(', ') || '(none)'}`);
-      } else {
-        output.warning(`Contract not found: ${contractId}`);
+  const sceneId = args.flags['scene'] as number | undefined;
+  const chapterId = args.flags['chapter'] as number | undefined;
+  const task = args.flags['task'] as string | undefined;
+
+  try {
+    const engine = extension.getContextPolicyEngine();
+    const result = await engine.buildContext({
+      projectId: String(projectId),
+      contractId,
+      currentSceneId: sceneId !== undefined ? String(sceneId) : undefined,
+      currentChapterId: chapterId !== undefined ? String(chapterId) : undefined,
+      userTask: task,
+      queryText: task,
+    });
+
+    output.heading(`Context — ${contractId}`);
+    output.dim(`${result.blocks.length} blocks · ${result.totalTokens} tokens · fingerprint ${result.deterministicFingerprint.slice(0, 12)}`);
+    output.newline();
+
+    if (result.blocks.length === 0) {
+      output.info('No context blocks assembled (no matching data yet, or required fetchers unavailable).');
+    } else {
+      for (const block of result.blocks) {
+        output.info(`── ${block.title} [${block.type}] (${block.tokenCount} tok)`);
+        output.dim(block.content.length > 500 ? `${block.content.slice(0, 500)}…` : block.content);
+        output.newline();
       }
-    } catch {
-      // Best-effort — do not fail the command
     }
+
+    if (result.omitted.length > 0) {
+      output.dim(`Omitted ${result.omitted.length} block(s) to fit the token budget.`);
+    }
+    for (const warning of result.warnings) {
+      output.warning(`${warning.code}: ${warning.message}`);
+    }
+  } catch (err) {
+    output.error(`Failed to build context: ${(err as Error).message}`);
   }
 }

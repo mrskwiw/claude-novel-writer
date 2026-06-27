@@ -92,6 +92,16 @@ export const generateCommand: Command = {
       ],
     },
     {
+      name: 'summary',
+      description: 'Summarize a chapter (≤5 sentences) for story context; via Claude Code when no API key',
+      handler: async (args, context) => {
+        await handleGenerateCommand(args, context.cwd, context.output);
+      },
+      flags: [
+        { name: 'chapter', alias: 'c', type: 'number', description: 'Chapter number to summarize', required: true },
+      ],
+    },
+    {
       name: 'pitch',
       description: 'Generate a 25-word elevator pitch',
       handler: async (args, context) => {

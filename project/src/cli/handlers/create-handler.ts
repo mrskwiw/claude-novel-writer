@@ -260,12 +260,12 @@ export async function handleCreateChapter(
     return;
   }
 
-  // Determine chapter number
+  const chapterSync = extension.getChapterSync();
+
+  // Determine chapter number — explicit flag, else next available in the DB.
   let chapterNumber = flags.number as number | undefined;
   if (!chapterNumber) {
-    // TODO: Query database for next available chapter number
-    // For now, default to 1
-    chapterNumber = 1;
+    chapterNumber = await chapterSync.getNextChapterNumber();
   }
 
   // Get title
@@ -332,9 +332,9 @@ export async function handleCreateChapter(
     const fs = await import('fs/promises');
     await fs.writeFile(chapterPath, content, 'utf-8');
 
-    // TODO: Sync to database
-    // const sync = extension.getChapterSync();
-    // await sync.syncChapterFile(chapterPath);
+    // Sync the new chapter into the database so it's visible to analysis,
+    // consistency, and context features immediately (no manual `sync` needed).
+    await chapterSync.syncChapterFile(chapterPath);
 
     spinner.stop('Chapter created successfully!');
     output.newline();

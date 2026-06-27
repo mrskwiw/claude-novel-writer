@@ -137,16 +137,22 @@ export class NovelCLI {
     if (this.isProjectInitialized()) {
       const extension = new NovelWriterExtension(this.cwd);
 
-      // Try to load project ID from database
+      // Load the actual project ID from the database (each .novel/data.db holds
+      // one project). Fall back to 1 only if the lookup fails entirely.
       try {
-        // TODO: Load project ID from database
-        // For now, set a default
+        const projectId = await extension.loadProjectId();
+        if (projectId !== undefined) {
+          context.extension = extension;
+          context.projectId = projectId;
+        } else {
+          // DB exists but has no project row — treat as uninitialized.
+          console.warn('Warning: project database has no project record');
+        }
+      } catch (error) {
+        // Project exists but can't load - non-fatal; assume the single project.
         extension.setProjectId(1);
         context.extension = extension;
         context.projectId = 1;
-      } catch (error) {
-        // Project exists but can't load - non-fatal
-        console.warn('Warning: Could not load project data');
       }
     }
 

@@ -35,6 +35,13 @@ import { KnowledgeService } from './services/knowledge-service.js';
 import { CanonService } from './services/canon-service.js';
 import { PromiseService } from './services/promise-service.js';
 import { ContextContractService } from './services/context-contract-service.js';
+import { ContextPolicyEngine } from './services/context-policy-engine.js';
+import { SceneFetcher } from './context/fetchers/scene-fetcher.js';
+import { CharacterFetcher } from './context/fetchers/character-fetcher.js';
+import { CanonFetcher } from './context/fetchers/canon-fetcher.js';
+import { PromiseFetcher } from './context/fetchers/promise-fetcher.js';
+import type { ContextFetcher } from './context/fetchers/fetcher.js';
+import type { ContextType } from './types/context.js';
 import { NarrativeGraphService } from './services/narrative-graph-service.js';
 import { SnapshotManager } from './revision/snapshot-manager.js';
 import { DraftScanner } from './analysis/draft-scanner.js';
@@ -110,6 +117,17 @@ export class NovelWriterExtension {
    */
   getProjectId(): number | undefined {
     return this.projectId;
+  }
+
+  /**
+   * Resolve and set the project ID from the database (the single project in
+   * this directory's `.novel/data.db`). Returns the id, or undefined if the
+   * database has no project yet. Use for existing projects instead of guessing.
+   */
+  async loadProjectId(): Promise<number | undefined> {
+    const id = await this.db.getFirstProjectId();
+    if (id !== undefined) this.projectId = id;
+    return id;
   }
 
   /**
@@ -356,6 +374,27 @@ export class NovelWriterExtension {
    */
   getContextContractService(): ContextContractService {
     return new ContextContractService(this.mcpClient);
+  }
+
+  /**
+   * Get a fully-wired ContextPolicyEngine (Ticket 010): the contract service
+   * plus all registered fetchers, ready to assemble context for a contract via
+   * `buildContext(request)`.
+   */
+  getContextPolicyEngine(): ContextPolicyEngine {
+    const sceneFetcher = new SceneFetcher(this.mcpClient);
+    const characterFetcher = new CharacterFetcher(this.mcpClient);
+    const canonFetcher = new CanonFetcher(this.mcpClient);
+    const promiseFetcher = new PromiseFetcher(this.mcpClient);
+    const fetchers = new Map<ContextType, ContextFetcher>([
+      ['current_scene', sceneFetcher],
+      ['recent_scenes', sceneFetcher],
+      ['character_profiles', characterFetcher],
+      ['canon_facts', canonFetcher],
+      ['canon_situations', canonFetcher],
+      ['promises', promiseFetcher],
+    ]);
+    return new ContextPolicyEngine(this.getContextContractService(), fetchers);
   }
 
   /**
