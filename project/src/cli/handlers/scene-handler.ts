@@ -62,10 +62,14 @@ async function getChapterFilePath(
   const chapterBuilder = extension.getChapterBuilder();
   const chapterPaths = await chapterBuilder.list();
 
-  // Find chapter by number in filename
+  // Find chapter by number in filename. Use the SAME extraction as
+  // ChapterSync.extractChapterNumber (first digit run anywhere) so both the
+  // documented `chapter-NN-title.md` form and the bare `NN-title.md` form
+  // resolve — previously this anchored the number at the start (`/^0*(\d+)/`)
+  // and silently failed on `chapter-NN-title.md`. (BUGS.md SCENE-01)
   for (const path of chapterPaths) {
     const filename = path.split(/[/\\]/).pop() || '';
-    const match = filename.match(/^0*(\d+)/);
+    const match = filename.match(/(\d+)/);
     if (match && parseInt(match[1], 10) === targetNum) {
       return path;
     }
@@ -93,7 +97,7 @@ async function handleSceneAdd(
     // Get chapter file path
     const chapterPath = await getChapterFilePath(chapterNumber, projectPath);
     if (!chapterPath) {
-      output.error(`Chapter ${chapterNumber} not found`);
+      output.error(`Chapter ${chapterNumber} not found. Check that chapters/ has a file whose name contains the chapter number (e.g. chapter-NN-title.md or NN-title.md).`);
       return;
     }
 
@@ -151,7 +155,7 @@ async function handleSceneList(
 
     const chapterPath = await getChapterFilePath(chapterNumber, projectPath);
     if (!chapterPath) {
-      output.error(`Chapter ${chapterNumber} not found`);
+      output.error(`Chapter ${chapterNumber} not found. Check that chapters/ has a file whose name contains the chapter number (e.g. chapter-NN-title.md or NN-title.md).`);
       return;
     }
 
@@ -223,7 +227,7 @@ async function handleSceneEdit(
 
     const chapterPath = await getChapterFilePath(chapterNumber, projectPath);
     if (!chapterPath) {
-      output.error(`Chapter ${chapterNumber} not found`);
+      output.error(`Chapter ${chapterNumber} not found. Check that chapters/ has a file whose name contains the chapter number (e.g. chapter-NN-title.md or NN-title.md).`);
       return;
     }
 
@@ -287,7 +291,7 @@ async function handleSceneDelete(
 
     const chapterPath = await getChapterFilePath(chapterNumber, projectPath);
     if (!chapterPath) {
-      output.error(`Chapter ${chapterNumber} not found`);
+      output.error(`Chapter ${chapterNumber} not found. Check that chapters/ has a file whose name contains the chapter number (e.g. chapter-NN-title.md or NN-title.md).`);
       return;
     }
 
@@ -327,7 +331,7 @@ async function handleSceneReorder(
 
     const chapterPath = await getChapterFilePath(chapterNumber, projectPath);
     if (!chapterPath) {
-      output.error(`Chapter ${chapterNumber} not found`);
+      output.error(`Chapter ${chapterNumber} not found. Check that chapters/ has a file whose name contains the chapter number (e.g. chapter-NN-title.md or NN-title.md).`);
       return;
     }
 
@@ -369,7 +373,7 @@ async function handleSceneStats(
 
     const chapterPath = await getChapterFilePath(chapterNumber, projectPath);
     if (!chapterPath) {
-      output.error(`Chapter ${chapterNumber} not found`);
+      output.error(`Chapter ${chapterNumber} not found. Check that chapters/ has a file whose name contains the chapter number (e.g. chapter-NN-title.md or NN-title.md).`);
       return;
     }
 
@@ -421,7 +425,7 @@ async function handleSceneSync(
 
     const chapterPath = await getChapterFilePath(chapterNumber, projectPath);
     if (!chapterPath) {
-      output.error(`Chapter ${chapterNumber} not found`);
+      output.error(`Chapter ${chapterNumber} not found. Check that chapters/ has a file whose name contains the chapter number (e.g. chapter-NN-title.md or NN-title.md).`);
       return;
     }
 
@@ -523,7 +527,7 @@ async function handleSceneBeats(
     // Resolve the chapter file
     const chapterPath = await getChapterFilePath(chapterNumber, projectPath);
     if (!chapterPath) {
-      output.error(`Chapter ${chapterNumber} not found`);
+      output.error(`Chapter ${chapterNumber} not found. Check that chapters/ has a file whose name contains the chapter number (e.g. chapter-NN-title.md or NN-title.md).`);
       return;
     }
 

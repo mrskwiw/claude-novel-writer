@@ -68,6 +68,16 @@ describe('ChapterSync', () => {
       expect(rows[0].notes).toBe('Needs revision');
     });
 
+    it('should reject an invalid chapter status with a clear error', async () => {
+      const chaptersDir = join(projectPath, 'chapters');
+      await mkdir(chaptersDir, { recursive: true });
+      const filePath = join(chaptersDir, '04-outline.md');
+      await writeFile(filePath, `---\ntitle: Draft\nstatus: outline\n---\n\nBody.`);
+      await expect(sync.syncChapterFile(filePath)).rejects.toThrow(
+        /Invalid chapter status "outline".*planned, drafted, revised, polished, final/
+      );
+    });
+
     it('should resolve pov character ID when character exists in DB', async () => {
       mockClient.seed('characters', [
         { id: 42, project_id: projectId, name: 'Alice' },

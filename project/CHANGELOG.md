@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-28
+
+### Fixed
+- **Chapter-filename convention mismatch broke scene commands** — `scene
+  sync|list|stats|tension-arc --chapter N` matched the chapter number only when
+  it was anchored at the start of the filename, so the documented
+  `chapter-NN-title.md` form silently failed with "Chapter N not found" even
+  though `list chapters` showed it synced. Scene resolution now uses the same
+  first-digit-run extraction as the sync layer, so both `chapter-NN-title.md`
+  and `NN-title.md` work; the error message now points at the filename.
+  (BUGS.md SCENE-01)
+- **Commands failed from a project subdirectory** — running any command from
+  e.g. `chapters/` reported "Extension not initialized". `NovelCLI` now walks up
+  from the working directory to the nearest ancestor containing `.novel/data.db`
+  for every command except `init`. (BUGS.md CWD-01)
+- **Unsupported chapter `status:` values gave a cryptic SQLite error** — an
+  invalid status (e.g. `outline`) now fails sync with a clear message listing
+  the valid values (planned, drafted, revised, polished, final). (BUGS.md
+  SYNC-STATUS-01)
+
 ## [0.2.0] - 2026-06-28
 
 ### Changed (MCP server — passthrough rewrite)
@@ -243,7 +263,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `generate`, `idea`, `knowledge`, `canon`, `promise`, `context`, `graph`
 - `revision`, `draft`, `analyze`, `research`, `beta`, `query`, `series`, `help`
 
-[Unreleased]: https://github.com/mrskwiw/claude-novel-writer/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/mrskwiw/claude-novel-writer/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/mrskwiw/claude-novel-writer/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mrskwiw/claude-novel-writer/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/mrskwiw/claude-novel-writer/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/mrskwiw/claude-novel-writer/releases/tag/v0.1.0

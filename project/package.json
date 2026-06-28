@@ -1,6 +1,6 @@
 {
   "name": "claude-novel-writer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "AI-assisted novel writing extension for Claude Code",
   "main": "dist/index.js",
   "type": "module",
@@ -88,7 +88,7 @@
     "extension": {
       "name": "Novel Writer",
       "description": "AI-assisted novel writing with structure, consistency tracking, and context management",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "mcpServers": {
         "novel-db": {
           "description": "SQLite database for novel metadata, characters, and consistency tracking",

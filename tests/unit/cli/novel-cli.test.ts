@@ -95,6 +95,17 @@ describe('NovelCLI', () => {
     expect(ok).toBe(false);
   });
 
+  it('resolves the project from a subdirectory (walk-up)', async () => {
+    // Running from <project>/chapters should still find the project root.
+    const sub = join(dir, 'chapters');
+    const { mkdir } = await import('fs/promises');
+    await mkdir(sub, { recursive: true });
+    const ok = await new NovelCLI(sub).execute('list characters');
+    expect(ok).toBe(true);
+    // Must NOT report the project as uninitialized.
+    expect(errSpy.mock.calls.flat().some((m) => String(m).includes('not initialized'))).toBe(false);
+  });
+
   it('surfaces a validation error when a required flag is missing', async () => {
     // `generate next-sentence` requires --scene; omitting it triggers the
     // parser validation → handleParseError path (command branch).

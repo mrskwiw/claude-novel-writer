@@ -125,6 +125,21 @@ describe('scene-handler coverage', () => {
     expect(has('Chapter 99 not found')).toBe(true);
   });
 
+  it('resolves a chapter-NN-title.md filename (SCENE-01 regression)', async () => {
+    // The documented `chapter-NN-title.md` form must resolve — previously the
+    // handler anchored the number at the start and silently failed on it.
+    const { writeFile, mkdir } = await import('fs/promises');
+    await mkdir(join(dir, 'chapters'), { recursive: true });
+    await writeFile(
+      join(dir, 'chapters', 'chapter-01-foo.md'),
+      '---\ntitle: Foo\nchapter: 1\n---\n\nProse.',
+      'utf-8'
+    );
+    await handleSceneCommand(args('list', { chapter: 1 }), dir, out);
+    expect(has('not found')).toBe(false);
+    expect(has('Chapter 1')).toBe(true);
+  });
+
   it('add validates tension range', async () => {
     await makeChapter(1);
     await handleSceneCommand(args('add', { chapter: 1, tension: 15 }), dir, out);

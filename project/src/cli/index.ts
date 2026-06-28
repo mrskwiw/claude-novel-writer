@@ -15,7 +15,7 @@ import { output } from './output.js';
 import type { Command, CommandContext, ParsedArgs, ParseError } from './types.js';
 import { NovelWriterExtension } from '../index.js';
 import { existsSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
 
 export class NovelCLI {
   private cwd: string;
@@ -96,15 +96,22 @@ export class NovelCLI {
     // Convert flag types
     const convertedArgs = parser.convertFlagTypes(args, command);
 
+    // Resolve the project directory. For every command except `init`, walk up
+    // from the cwd to the nearest ancestor that holds `.novel/data.db`, so
+    // commands run correctly from a project subdirectory (e.g. chapters/).
+    // `init` always targets the literal cwd (where the new project is created).
+    const projectDir =
+      command.name === 'init' ? this.cwd : this.resolveProjectDir(this.cwd);
+
     // Check if command requires initialized project
-    if (command.requiresProject && !this.isProjectInitialized()) {
+    if (command.requiresProject && !this.isProjectInitialized(projectDir)) {
       output.error('This command requires an initialized novel project.');
       output.info('Run \'/novel init\' first to initialize a project in this directory.');
       return;
     }
 
     // Create command context
-    const context = await this.createContext();
+    const context = await this.createContext(projectDir);
 
     // Execute command handler
     try {
@@ -116,26 +123,42 @@ export class NovelCLI {
   }
 
   /**
-   * Check if current directory has an initialized project
+   * Walk up from `startDir` to the nearest ancestor that contains
+   * `.novel/data.db` (the project root). Returns `startDir` unchanged when no
+   * project is found, so callers still report "not initialized".
    */
-  private isProjectInitialized(): boolean {
-    const novelDir = join(this.cwd, '.novel');
+  private resolveProjectDir(startDir: string): string {
+    let dir = startDir;
+    for (let i = 0; i < 64; i++) {
+      if (existsSync(join(dir, '.novel', 'data.db'))) return dir;
+      const parent = dirname(dir);
+      if (parent === dir) break; // reached the filesystem root
+      dir = parent;
+    }
+    return startDir;
+  }
+
+  /**
+   * Check if the given directory (default cwd) has an initialized project
+   */
+  private isProjectInitialized(dir: string = this.cwd): boolean {
+    const novelDir = join(dir, '.novel');
     const dbPath = join(novelDir, 'data.db');
     return existsSync(novelDir) && existsSync(dbPath);
   }
 
   /**
-   * Create command execution context
+   * Create command execution context for the given project directory
    */
-  private async createContext(): Promise<CommandContext> {
+  private async createContext(dir: string = this.cwd): Promise<CommandContext> {
     const context: CommandContext = {
-      cwd: this.cwd,
+      cwd: dir,
       output,
     };
 
     // Initialize extension if project exists
-    if (this.isProjectInitialized()) {
-      const extension = new NovelWriterExtension(this.cwd);
+    if (this.isProjectInitialized(dir)) {
+      const extension = new NovelWriterExtension(dir);
 
       // Load the actual project ID from the database (each .novel/data.db holds
       // one project). Fall back to 1 only if the lookup fails entirely.

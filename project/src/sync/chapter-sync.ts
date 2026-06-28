@@ -79,13 +79,25 @@ export class ChapterSync {
       if (povRows.length > 0) povCharacterId = povRows[0].id;
     }
 
+    // Validate status against the DB CHECK constraint up-front, so an invalid
+    // value (e.g. "outline") yields a clear message instead of a cryptic
+    // SQLite constraint error during the write.
+    const validStatuses = ['planned', 'drafted', 'revised', 'polished', 'final'];
+    const status = metadata.status || 'drafted';
+    if (!validStatuses.includes(status)) {
+      throw new Error(
+        `Invalid chapter status "${status}" in ${basename(filePath)}. ` +
+          `Valid values: ${validStatuses.join(', ')}.`
+      );
+    }
+
     // Upsert chapter
     await this.upsertChapter({
       chapterNumber,
       title: metadata.title,
       filePath,
       wordCount,
-      status: metadata.status || 'drafted',
+      status,
       summary: metadata.summary,
       notes: metadata.notes,
       povCharacterId,
