@@ -1,148 +1,206 @@
 #!/usr/bin/env node
 
 /**
- * Novel Tools MCP Server
- * Exposes high-level novel-writing operations to Claude via MCP protocol
+ * Novel Tools MCP Server — single passthrough tool.
+ *
+ * Exposes ONE tool, `novel`, that runs a novel-writer CLI command in a project
+ * directory and returns whatever the CLI prints. The CLI's CommandRegistry is
+ * the single source of truth, so this server never drifts behind new commands
+ * or flags — anything the CLI can do, the tool can do, including `help`.
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { pathToFileURL } from 'url';
+import { existsSync } from 'fs';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
-import { tools } from './tools.js';
-import * as handlers from './handlers.js';
-
-// Create server instance
-const server = new Server(
-  {
-    name: 'novel-tools',
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      tools: {},
+/**
+ * The one and only tool. Its description deliberately points the caller at the
+ * CLI's own `help` so an agent can pull the full, current command + argument
+ * list at call time instead of relying on a hand-maintained schema.
+ */
+export const NOVEL_TOOL = {
+  name: 'novel',
+  description:
+    'Run a novel-writer CLI command in a novel project and return its text output. ' +
+    'Pass `command` exactly as you would after `/novel` (e.g. "list characters", ' +
+    '"create character --name Ada --summary \\"...\\"", "generate overview --length brief", "check"). ' +
+    'The CLI is the source of truth for every command and flag — to discover the ' +
+    'full, current list, call this tool with command "help" for an overview, or ' +
+    '"help <command>" for one command\'s arguments, choices, and examples ' +
+    '(e.g. "help generate", "help analyze"). Set `project_path` to the project ' +
+    'directory (the folder containing `.novel/`); it defaults to the server\'s ' +
+    'working directory.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      command: {
+        type: 'string',
+        description:
+          'The CLI command and its arguments, exactly as typed after `/novel` ' +
+          '(without the leading "/novel"). Use "help" or "help <command>" to discover options.',
+      },
+      project_path: {
+        type: 'string',
+        description:
+          'Absolute path to the novel project directory (the folder containing `.novel/`). ' +
+          'Defaults to the server process working directory.',
+      },
     },
-  }
-);
-
-// Map tool names to handler functions
-const toolHandlers: Record<string, (args: any) => Promise<any>> = {
-  // Sync operations
-  sync_world_rules: handlers.handleSyncWorldRules,
-  sync_characters: handlers.handleSyncCharacters,
-  sync_locations: handlers.handleSyncLocations,
-  sync_plot_threads: handlers.handleSyncPlotThreads,
-  sync_chapters: handlers.handleSyncChapters,
-  sync_timeline: handlers.handleSyncTimeline,
-
-  // Builder operations
-  create_world_rule: handlers.handleCreateWorldRule,
-  list_world_rules: handlers.handleListWorldRules,
-  get_world_rule: handlers.handleGetWorldRule,
-  add_world_rule_example: handlers.handleAddWorldRuleExample,
-  add_world_rule_exception: handlers.handleAddWorldRuleException,
-  update_world_rule_limitations: handlers.handleUpdateWorldRuleLimitations,
-  mark_world_rule_established: handlers.handleMarkWorldRuleEstablished,
-  toggle_world_rule_hard: handlers.handleToggleWorldRuleHard,
-  get_world_rule_stats: handlers.handleGetWorldRuleStats,
-  create_character: handlers.handleCreateCharacter,
-  create_location: handlers.handleCreateLocation,
-  create_plot_thread: handlers.handleCreatePlotThread,
-
-  // Context assembly
-  get_scene_context: handlers.handleGetSceneContext,
-  get_character_context: handlers.handleGetCharacterContext,
-  get_location_context: handlers.handleGetLocationContext,
-
-  // Consistency checking
-  check_consistency: handlers.handleCheckConsistency,
-  check_world_rules: handlers.handleCheckWorldRules,
-  list_consistency_issues: handlers.handleListConsistencyIssues,
-  resolve_consistency_issue: handlers.handleResolveConsistencyIssue,
-  acknowledge_consistency_issue: handlers.handleAcknowledgeConsistencyIssue,
-  mark_false_positive: handlers.handleMarkFalsePositive,
-
-  // Project health & stats
-  get_project_health: handlers.handleGetProjectHealth,
-  get_writing_stats: handlers.handleGetWritingStats,
-  get_plot_thread_status: handlers.handleGetPlotThreadStatus,
-
-  // Search & query
-  search_world_rules: handlers.handleSearchWorldRules,
-  search_characters: handlers.handleSearchCharacters,
-
-  // Timeline operations
-  add_timeline_event: handlers.handleAddTimelineEvent,
-  list_timeline_events: handlers.handleListTimelineEvents,
-  get_timeline_event: handlers.handleGetTimelineEvent,
-  update_timeline_event: handlers.handleUpdateTimelineEvent,
-  link_timeline_events: handlers.handleLinkTimelineEvents,
-  check_timeline_conflicts: handlers.handleCheckTimelineConflicts,
+    required: ['command'],
+  },
 };
 
-// Handle tool listing
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: tools.map(tool => ({
-      name: tool.name,
-      description: tool.description,
-      inputSchema: tool.inputSchema,
-    })),
+/**
+ * Execute a novel-writer command in `projectPath`, capturing everything the CLI
+ * prints (it writes via `console.*` and, for `--json`, `process.stdout.write`).
+ * Pure passthrough: the CLI registry decides what is valid, so this stays in
+ * sync by construction.
+ */
+export async function runNovelCommand(
+  command: string,
+  projectPath?: string
+): Promise<{ ok: boolean; output: string }> {
+  // Dynamic import resolves to the built CLI at <project>/dist/cli/index.js
+  // from both this source file and the compiled dist/index.js.
+  const { NovelCLI } = await import('../../../dist/cli/index.js');
+  const cwd = projectPath || process.cwd();
+
+  const chunks: string[] = [];
+  const push = (...parts: unknown[]) => {
+    chunks.push(parts.map((p) => String(p)).join(' '));
   };
-});
 
-// Handle tool execution
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+  const orig = {
+    log: console.log,
+    error: console.error,
+    warn: console.warn,
+    info: console.info,
+    stdout: process.stdout.write.bind(process.stdout),
+    stderr: process.stderr.write.bind(process.stderr),
+  };
 
+  console.log = push;
+  console.error = push;
+  console.warn = push;
+  console.info = push;
+  process.stdout.write = ((s: string | Uint8Array) => {
+    chunks.push(typeof s === 'string' ? s : s.toString());
+    return true;
+  }) as typeof process.stdout.write;
+  process.stderr.write = ((s: string | Uint8Array) => {
+    chunks.push(typeof s === 'string' ? s : s.toString());
+    return true;
+  }) as typeof process.stderr.write;
+
+  let ok = false;
   try {
-    // Get the handler for this tool
-    const handler = toolHandlers[name];
-    if (!handler) {
-      throw new Error(`Unknown tool: ${name}`);
-    }
+    const cli = new NovelCLI(cwd);
+    ok = await cli.execute(command);
+  } finally {
+    console.log = orig.log;
+    console.error = orig.error;
+    console.warn = orig.warn;
+    console.info = orig.info;
+    process.stdout.write = orig.stdout;
+    process.stderr.write = orig.stderr;
+  }
 
-    // Execute the handler
-    const result = await handler(args || {});
+  return { ok, output: chunks.join('\n').replace(/\n{3,}/g, '\n\n').trim() };
+}
 
+/** MCP `tools/list` response — always the single passthrough tool. */
+export function listTools(): { tools: typeof NOVEL_TOOL[] } {
+  return { tools: [NOVEL_TOOL] };
+}
+
+/**
+ * MCP `tools/call` dispatch for the `novel` tool. Exported for testing.
+ * `runner` is injectable so tests can exercise the error path.
+ */
+export async function handleCallTool(
+  request: { params: { name: string; arguments?: Record<string, unknown> } },
+  runner: typeof runNovelCommand = runNovelCommand
+): Promise<{ content: { type: 'text'; text: string }[]; isError?: boolean }> {
+  const { name, arguments: args = {} } = request.params;
+
+  if (name !== NOVEL_TOOL.name) {
     return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(result, null, 2),
-        },
-      ],
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            success: false,
-            error: errorMessage,
-          }, null, 2),
-        },
-      ],
+      content: [{ type: 'text', text: `Unknown tool: ${name}` }],
       isError: true,
     };
   }
-});
 
-// Start the server
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  const command = typeof args.command === 'string' ? args.command.trim() : '';
+  const projectPath =
+    typeof args.project_path === 'string' && args.project_path.length > 0
+      ? args.project_path
+      : undefined;
 
-  // Log to stderr so it doesn't interfere with MCP protocol on stdout
-  console.error('Novel Tools MCP Server running on stdio');
+  if (!command) {
+    return {
+      content: [{ type: 'text', text: 'Error: "command" is required (e.g. "help").' }],
+      isError: true,
+    };
+  }
+
+  if (projectPath && !existsSync(projectPath)) {
+    return {
+      content: [{ type: 'text', text: `Error: project_path does not exist: ${projectPath}` }],
+      isError: true,
+    };
+  }
+
+  try {
+    const { ok, output } = await runner(command, projectPath);
+    return {
+      content: [{ type: 'text', text: output || (ok ? '(command produced no output)' : 'Command failed.') }],
+      isError: !ok,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      content: [{ type: 'text', text: `Error running command: ${message}` }],
+      isError: true,
+    };
+  }
 }
 
-main().catch((error) => {
-  console.error('Fatal error in main():', error);
-  process.exit(1);
-});
+/** Build and wire the MCP server. Exported so tests can construct it without main(). */
+export function createServer(): Server {
+  const server = new Server(
+    { name: 'novel-tools', version: '2.0.0' },
+    { capabilities: { tools: {} } }
+  );
+  server.setRequestHandler(ListToolsRequestSchema, async () => listTools());
+  server.setRequestHandler(CallToolRequestSchema, async (request) => handleCallTool(request));
+  return server;
+}
+
+/**
+ * Start the server. The transport is injectable so tests can drive `main()`
+ * with a fake transport instead of connecting real stdio.
+ */
+export async function main(
+  transport: { start(): Promise<void>; close(): Promise<void>; send(message: unknown): Promise<void> } = new StdioServerTransport()
+): Promise<void> {
+  const server = createServer();
+  await server.connect(transport as unknown as Parameters<Server['connect']>[0]);
+  // Log to stderr so it doesn't interfere with the MCP protocol on stdout.
+  console.error('Novel Tools MCP Server (passthrough) running on stdio');
+}
+
+// Only start the server when run directly — importing this module (e.g. in
+// tests) must NOT connect a transport.
+const isEntrypoint =
+  Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isEntrypoint) {
+  main().catch((error) => {
+    console.error('Fatal error in main():', error);
+    process.exit(1);
+  });
+}

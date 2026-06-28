@@ -3,67 +3,90 @@
 /**
  * MCP SQLite Server Launcher
  *
- * This script launches the mcp-sqlite server with the correct database path.
- * It's used by the Claude Code extension to start the MCP server automatically.
+ * Launches the generic `mcp-sqlite` server against a project's database. Used by
+ * the Claude Code extension to start the optional "novel-db" power-user server.
  *
  * Usage:
  *   node launch.js <path-to-database.db>
  *   node launch.js /path/to/project/.novel/data.db
+ *
+ * The launch logic is factored into pure, dependency-injected functions so it
+ * can be unit-tested without actually spawning a child process.
  */
 
-import { spawn } from 'child_process';
+import { spawn as nodeSpawn } from 'child_process';
 import { resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Get database path from command line arguments
-const dbPath = process.argv[2];
-
-if (!dbPath) {
-  console.error('Error: Database path is required');
-  console.error('Usage: node launch.js <path-to-database.db>');
-  process.exit(1);
+/**
+ * Resolve the database-path argument (argv[2]) to an absolute path.
+ * Returns null when no path was supplied.
+ */
+export function resolveDbPath(argv) {
+  const dbPath = argv[2];
+  if (!dbPath) return null;
+  return resolve(dbPath);
 }
 
-// Resolve to absolute path
-const absoluteDbPath = resolve(dbPath);
+/**
+ * Launch the mcp-sqlite server for the database in `argv`. All side-effecting
+ * dependencies (spawn, console, process.exit, signal registration) are
+ * injectable so the function can be tested in-process.
+ *
+ * @returns the spawned child process, or undefined when the args are invalid.
+ */
+export function runLauncher(argv, deps = {}) {
+  const {
+    spawn = nodeSpawn,
+    log = console.log,
+    error = console.error,
+    exit = process.exit,
+    onSignal = (sig, handler) => process.on(sig, handler),
+  } = deps;
 
-console.log(`Starting MCP SQLite server...`);
-console.log(`Database: ${absoluteDbPath}`);
-
-// Find mcp-sqlite in node_modules
-const mcpSqlitePath = join(__dirname, '..', 'node_modules', '.bin', 'mcp-sqlite');
-
-// Launch mcp-sqlite server
-const server = spawn('npx', ['-y', 'mcp-sqlite', absoluteDbPath], {
-  stdio: 'inherit',
-  shell: true,
-});
-
-server.on('error', (error) => {
-  console.error(`Failed to start MCP server: ${error.message}`);
-  process.exit(1);
-});
-
-server.on('exit', (code) => {
-  if (code !== 0) {
-    console.error(`MCP server exited with code ${code}`);
-    process.exit(code);
+  const absoluteDbPath = resolveDbPath(argv);
+  if (!absoluteDbPath) {
+    error('Error: Database path is required');
+    error('Usage: node launch.js <path-to-database.db>');
+    exit(1);
+    return undefined;
   }
-});
 
-// Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\nShutting down MCP server...');
-  server.kill('SIGINT');
-  process.exit(0);
-});
+  log('Starting MCP SQLite server...');
+  log(`Database: ${absoluteDbPath}`);
 
-process.on('SIGTERM', () => {
-  console.log('\nShutting down MCP server...');
-  server.kill('SIGTERM');
-  process.exit(0);
-});
+  const server = spawn('npx', ['-y', 'mcp-sqlite', absoluteDbPath], {
+    stdio: 'inherit',
+    shell: true,
+  });
+
+  server.on('error', (err) => {
+    error(`Failed to start MCP server: ${err.message}`);
+    exit(1);
+  });
+
+  server.on('exit', (code) => {
+    if (code !== 0) {
+      error(`MCP server exited with code ${code}`);
+      exit(code);
+    }
+  });
+
+  // Graceful shutdown: forward termination signals to the child.
+  for (const sig of ['SIGINT', 'SIGTERM']) {
+    onSignal(sig, () => {
+      log('\nShutting down MCP server...');
+      server.kill(sig);
+      exit(0);
+    });
+  }
+
+  return server;
+}
+
+// Run only when invoked directly (not when imported by a test).
+const isEntrypoint =
+  Boolean(process.argv[1]) && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isEntrypoint) {
+  runLauncher(process.argv);
+}

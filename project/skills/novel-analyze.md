@@ -38,8 +38,42 @@ novel-writer analyze developmental
 ```
 Audits: scene purpose (does each scene advance plot or character?), subplot balance (neglected or overdone threads), plot holes (promised setups without payoff).
 
-## Read-aloud preparation
+## Style targets (quantitative grading)
+```bash
+novel-writer analyze style --chapter 3
+novel-writer analyze style --all
+```
+Measures ~12 prose metrics (sentence length, adjective/adverb density, passive %, show/tell, sensory coverage, em-dash/semicolon cadence, fragments) against the project's `style-targets.yml` and grades each ✓ / ⚠ low / ⚠ high. Falls back to general-fiction defaults when no file is present.
+
+## Opening-line hook strength
+```bash
+novel-writer analyze hook --chapter 1
+```
+Deterministic 0–100 score for a chapter's opening across six signals (poses a
+question, introduces a character, place/atmosphere, in-medias-res, tension,
+avoids throat-clearing) with advisory suggestions.
+
+## Advisory vs strict grading
+`analyze prose|sentences|dialogue` grade flags as info/suggestion/warning relative
+to `style-targets.yml` (Le Guin: "suggest, don't dictate"). Add `--strict` for hard
+flagging, or an `allow:` list in `style-targets.yml` to silence specific words.
+
+## Character voice (manuscript-wide)
+```bash
+novel-writer analyze voice
+novel-writer analyze voice --character "Ada"
+```
+Flags character voices that sound too alike (may be indistinguishable to a reader) and voices that drift across chapters.
+
+## Read-aloud preparation (text)
 ```bash
 novel-writer draft readaloud --chapter 3
 ```
-Strips markdown, flags rhythm anomalies, detects accidental rhymes, highlights long sentences that may trip readers.
+Strips markdown, flags rhythm anomalies, detects accidental rhymes, highlights long sentences that may trip readers. Produces text, not audio.
+
+## Read aloud (actual audio)
+```bash
+novel-writer readaloud --chapter 3
+novel-writer readaloud --chapter 3 --out chapter3.wav
+```
+Speaks the chapter through the OS text-to-speech engine (Windows SAPI, macOS `say`, Linux espeak/spd-say). `--out` writes an audio file instead of playing.

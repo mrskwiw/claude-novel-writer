@@ -7,7 +7,7 @@
 
 import type { MCPClient } from '../core/database.js';
 import { SceneContextAssembler, type ContextOptions } from '../context/scene-context.js';
-import type { SceneContext, SynopsisContext, SynopsisLength } from '../types/novel.js';
+import type { SceneContext, SynopsisContext, SynopsisLength, OverviewLength } from '../types/novel.js';
 import { ClaudeClient, PassthroughClaudeClient, type IClaudeClient } from './claude-client.js';
 
 export interface CharacterProfileRow {
@@ -103,6 +103,200 @@ export class GenerationManager {
       maxTokens: 400,
     });
     return { content: response.content, passthrough: Boolean(response.passthrough) };
+  }
+
+  /**
+   * Summarize the book the author INTENDS to write, from their planning data:
+   * the outline (plot threads + their beats), the character roster, and any hard
+   * world rules. Unlike `generateSynopsis` — which reads drafted chapter
+   * summaries — this works pre-draft and describes the *planned* book.
+   *
+   * Routes through `IClaudeClient`: with ANTHROPIC_API_KEY the API returns the
+   * prose; without a key the PassthroughClaudeClient returns the assembled
+   * PROMPT and the Claude Code session writes the summary. Returns a `warnings`
+   * entry (and empty content) when there is no outline or cast to summarize.
+   *
+   * @param projectId - Project identifier (string form accepted by callers)
+   * @param length    - 'brief' (~150w), 'standard' (~350w), or 'full' (~700w)
+   */
+  async generateOverview(
+    projectId: string,
+    length: OverviewLength = 'standard'
+  ): Promise<GenerationResult> {
+    const id = Number(projectId) || this.projectId;
+
+    // Project header.
+    const projectRows = await this.mcpClient.readQuery<{
+      title?: string;
+      genre?: string;
+      target_word_count?: number;
+      current_phase?: string;
+    }>(
+      'SELECT title, genre, target_word_count, current_phase FROM projects WHERE id = ?',
+      [id]
+    );
+    const project = projectRows[0] ?? {};
+
+    // Full cast, ordered by narrative importance then name.
+    const characters = await this.mcpClient.readQuery<{
+      name: string;
+      role?: string;
+      summary?: string;
+      voice_notes?: string;
+    }>(
+      `SELECT name, role, summary, voice_notes FROM characters WHERE project_id = ?
+       ORDER BY CASE role
+         WHEN 'protagonist' THEN 0 WHEN 'antagonist' THEN 1
+         WHEN 'major' THEN 2 WHEN 'minor' THEN 3 ELSE 4 END, name`,
+      [id]
+    );
+
+    // The outline: plot threads (highest priority first) with their beats.
+    const threadRows = await this.mcpClient.readQuery<{
+      id: number;
+      thread_name: string;
+      thread_type?: string;
+      description?: string;
+      status?: string;
+      priority?: number;
+    }>(
+      `SELECT id, thread_name, thread_type, description, status, priority
+       FROM plot_threads WHERE project_id = ?
+       ORDER BY COALESCE(priority, 0) DESC, id`,
+      [id]
+    );
+
+    const threads: Array<{
+      thread_name: string;
+      thread_type?: string;
+      description?: string;
+      status?: string;
+      beats: { beat_type?: string; description?: string }[];
+    }> = [];
+    for (const t of threadRows) {
+      const beats = await this.mcpClient.readQuery<{
+        beat_type?: string;
+        description?: string;
+      }>(
+        `SELECT beat_type, description FROM plot_beats
+         WHERE plot_thread_id = ? ORDER BY beat_order`,
+        [t.id]
+      );
+      threads.push({
+        thread_name: t.thread_name,
+        thread_type: t.thread_type,
+        description: t.description,
+        status: t.status,
+        beats,
+      });
+    }
+
+    // Hard world rules (up to 8).
+    const worldRules = await this.mcpClient.readQuery<{
+      rule_name: string;
+      description?: string;
+    }>(
+      'SELECT rule_name, description FROM world_rules WHERE project_id = ? AND is_hard_rule = 1 LIMIT 8',
+      [id]
+    );
+
+    // Nothing planned yet → tell the caller how to bootstrap.
+    if (characters.length === 0 && threads.length === 0) {
+      return {
+        content: '',
+        alternatives: [],
+        warnings: [
+          'No characters or plot threads found. Populate characters/ and plots/ ' +
+            '(then run `novel sync`) before generating an overview. To bootstrap ' +
+            'from a prose outline, try `novel extract --file outline.md`.',
+        ],
+        reasoning: 'Overview needs at least one character or plot thread.',
+      };
+    }
+
+    // ── Assemble readable planning blocks for the prompt. ──
+    const castBlock = characters.length
+      ? characters
+          .map((c) => {
+            const role = c.role ? ` [${c.role}]` : '';
+            const essence = c.summary ? ` — ${c.summary}` : '';
+            const voice = c.voice_notes ? ` (voice: ${c.voice_notes})` : '';
+            return `  • ${c.name}${role}${essence}${voice}`;
+          })
+          .join('\n')
+      : '  (No characters defined yet)';
+
+    const outlineBlock = threads.length
+      ? threads
+          .map((t) => {
+            const meta = [t.thread_type, t.status].filter(Boolean).join(', ');
+            const head = `  ▸ ${t.thread_name}${meta ? ` (${meta})` : ''}`;
+            const desc = t.description ? `\n      ${t.description}` : '';
+            const beats = t.beats.length
+              ? '\n' +
+                t.beats
+                  .map(
+                    (b) =>
+                      `      - ${b.beat_type ? `[${b.beat_type}] ` : ''}${b.description ?? ''}`.trimEnd()
+                  )
+                  .join('\n')
+              : '';
+            return `${head}${desc}${beats}`;
+          })
+          .join('\n')
+      : '  (No plot threads defined yet)';
+
+    const rulesBlock = worldRules.length
+      ? worldRules
+          .map((r) => `  • ${r.rule_name}${r.description ? `: ${r.description}` : ''}`)
+          .join('\n')
+      : '';
+
+    const lengthGuide: Record<OverviewLength, string> = {
+      brief:
+        '~150 words — a single tight paragraph: premise, protagonist, central conflict, and stakes.',
+      standard:
+        '~350 words — premise, the main characters and what drives them, the through-line of the plot, and where it is heading.',
+      full:
+        "~700 words — a planning treatment: premise, the full cast and their roles, each major thread and how they interweave, the world's hard rules, and the intended arc.",
+    };
+
+    const target = project.target_word_count
+      ? `${project.target_word_count.toLocaleString()} words`
+      : 'length TBD';
+
+    const prompt = [
+      'You are helping a novelist articulate the book they INTEND to write, from their planning notes.',
+      "This is a planning summary for the author's own use — NOT a marketing blurb or submission synopsis.",
+      'Describe the intended book in clear prose. Where the notes are sparse, summarize only what is given;',
+      'do NOT invent plot the author has not planned. Output ONLY the summary prose: no headings or preamble.',
+      '',
+      `TITLE: ${project.title ?? 'Untitled'}`,
+      `GENRE: ${project.genre ?? 'Fiction'}`,
+      `TARGET: ${target}${project.current_phase ? ` · phase: ${project.current_phase}` : ''}`,
+      '',
+      'CAST:',
+      castBlock,
+      '',
+      'OUTLINE (plot threads and beats):',
+      outlineBlock,
+      ...(rulesBlock ? ['', 'HARD WORLD RULES:', rulesBlock] : []),
+      '',
+      `TASK: Write a summary of the intended book — ${lengthGuide[length]}`,
+    ].join('\n');
+
+    const response = await this.claude.generateStructured(prompt, {
+      temperature: 0.5,
+      maxTokens: length === 'full' ? 1300 : length === 'standard' ? 700 : 350,
+    });
+
+    return {
+      content: response.content,
+      alternatives: [],
+      reasoning:
+        `Overview assembled from ${characters.length} character(s) and ${threads.length} plot thread(s)` +
+        (response.passthrough ? ' — written below by this session (no API key set).' : '.'),
+    };
   }
 
   /**
@@ -683,26 +877,17 @@ Remember: The author knows where their story wants to go.
     sceneId: number,
     options: GenerationOptions = {}
   ): Promise<GenerationResult> {
-    // Load the last 500 words of the scene's content
-    const rows = await this.mcpClient.readQuery(
-      'SELECT content FROM scenes WHERE id = ? AND project_id = ?',
+    // Scene prose lives in the chapter Markdown files, not the database (the
+    // `scenes` table has no `content` column), so use the scene's chapter
+    // summary as the available context for continuation.
+    const chapterRows = await this.mcpClient.readQuery(
+      `SELECT ch.summary FROM scenes s
+       JOIN chapters ch ON ch.id = s.chapter_id
+       WHERE s.id = ? AND ch.project_id = ?`,
       [sceneId, this.projectId]
     );
-
-    let sceneContent = rows.length > 0 && rows[0].content ? (rows[0].content as string) : '';
-
-    // Fallback: if scene has no content, try loading chapter opening via summary
-    if (!sceneContent.trim()) {
-      const chapterRows = await this.mcpClient.readQuery(
-        `SELECT ch.summary FROM scenes s
-         JOIN chapters ch ON ch.id = s.chapter_id
-         WHERE s.id = ? AND ch.project_id = ?`,
-        [sceneId, this.projectId]
-      );
-      sceneContent = chapterRows.length > 0 && chapterRows[0].summary
-        ? (chapterRows[0].summary as string)
-        : '';
-    }
+    const sceneContent =
+      chapterRows.length > 0 && chapterRows[0].summary ? (chapterRows[0].summary as string) : '';
 
     // Take last 500 words
     const words = sceneContent.trim().split(/\s+/).filter(w => w.length > 0);

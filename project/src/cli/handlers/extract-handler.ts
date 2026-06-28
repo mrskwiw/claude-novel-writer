@@ -26,6 +26,21 @@ export async function handleExtractCommand(
   try {
     const extractor = new EntityExtractor(projectPath);
 
+    // --file: scan an arbitrary prose file (e.g. a freeform outline) to
+    // bootstrap structured entities before chapters exist.
+    const fileArg = args.flags['file'] as string | undefined;
+    if (fileArg) {
+      let result: ExtractionResult;
+      try {
+        result = await extractor.extractFromFile(fileArg);
+      } catch {
+        output.error(`Could not read file: ${fileArg}`);
+        return;
+      }
+      renderResult(basename(fileArg), result, output);
+      return;
+    }
+
     if (args.flags['all']) {
       const files = listChapterFiles(projectPath, output);
       if (files === undefined) return;
@@ -72,7 +87,7 @@ function renderResult(
   renderSection('New Locations', 'location', result.locations, output);
 
   output.newline();
-  output.dim('These are suggestions from the drafted prose — run a create command above to confirm any you want to keep.');
+  output.dim('These are suggestions from the prose — run a create command above to confirm any you want to keep.');
 }
 
 /** Print one entity group with its mention count and ready-to-run command. */

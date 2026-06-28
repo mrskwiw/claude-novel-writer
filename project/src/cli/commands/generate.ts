@@ -102,6 +102,27 @@ export const generateCommand: Command = {
       ],
     },
     {
+      name: 'overview',
+      description: 'Summarize the INTENDED book from the planned outline + cast (pre-draft; brief|standard|full)',
+      handler: async (args, context) => {
+        await handleGenerateCommand(args, context.cwd, context.output);
+      },
+      flags: [
+        {
+          name: 'length',
+          alias: 'l',
+          type: 'string',
+          description: 'Overview length: brief | standard | full',
+          choices: ['brief', 'standard', 'full'],
+        },
+        {
+          name: 'save',
+          type: 'boolean',
+          description: 'Save overview to export/overview.md',
+        },
+      ],
+    },
+    {
       name: 'pitch',
       description: 'Generate a 25-word elevator pitch',
       handler: async (args, context) => {
@@ -279,6 +300,7 @@ export const generateCommand: Command = {
     '/novel generate continue --scene 12 --alternatives 3',
     '/novel generate dialogue --character "Mara" --scene 12',
     '/novel generate synopsis --length medium --save',
+    '/novel generate overview --length full --save',
     '/novel generate pitch',
     '/novel generate name --culture Japanese --gender female --count 5',
   ],

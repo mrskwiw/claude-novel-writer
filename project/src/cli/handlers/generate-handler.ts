@@ -4,7 +4,7 @@
 
 import { join } from 'path';
 import { writeFile, mkdir } from 'fs/promises';
-import type { SynopsisLength } from '../../types/novel.js';
+import type { SynopsisLength, OverviewLength } from '../../types/novel.js';
 import { NovelWriterExtension } from '../../index.js';
 import type { ParsedArgs, OutputFormatter } from '../types.js';
 import { GenerationManager } from '../../ai/generation-manager.js';
@@ -53,6 +53,9 @@ export async function handleGenerateCommand(
     case 'summary':
       await handleGenerateSummary(args, projectPath, output, injectedExtension);
       break;
+    case 'overview':
+      await handleGenerateOverview(args, projectPath, output, injectedExtension);
+      break;
     case 'pitch':
       await handleGeneratePitch(args, projectPath, output, injectedExtension);
       break;
@@ -75,7 +78,7 @@ export async function handleGenerateCommand(
       await handleGenerateSketch(args, projectPath, output, injectedExtension);
       break;
     default:
-      output.error('Unknown generation type. Use: character, location, continue, dialogue, describe, plot, next-sentence, synopsis, summary, pitch, query-letter, comps, opening-lines, name, premise, sketch');
+      output.error('Unknown generation type. Use: character, location, continue, dialogue, describe, plot, next-sentence, synopsis, summary, overview, pitch, query-letter, comps, opening-lines, name, premise, sketch');
   }
 }
 
@@ -164,6 +167,72 @@ async function handleGenerateSummary(
     }
   } catch (err) {
     output.error(`Summary generation failed: ${(err as Error).message}`);
+  }
+}
+
+/**
+ * Handle `generate overview [--length brief|standard|full] [--save]` — summarize
+ * the INTENDED book from the planned outline (plot threads + beats) and cast.
+ * Works pre-draft. Uses the live API when ANTHROPIC_API_KEY is set, otherwise
+ * hands the assembled context to the Claude Code session (passthrough).
+ */
+async function handleGenerateOverview(
+  args: ParsedArgs,
+  projectPath: string,
+  output: OutputFormatter,
+  injectedExtension?: NovelWriterExtension
+): Promise<void> {
+  try {
+    const rawLength = (args.flags['length'] as string) || 'standard';
+    const validLengths: OverviewLength[] = ['brief', 'standard', 'full'];
+    if (!validLengths.includes(rawLength as OverviewLength)) {
+      output.error('Invalid --length. Choose one of: brief, standard, full');
+      return;
+    }
+    const length = rawLength as OverviewLength;
+
+    // Resolve the real project id (avoids the projectId=1 default).
+    const extension = injectedExtension || new NovelWriterExtension(projectPath);
+    if (extension.getProjectId() === undefined) {
+      await extension.loadProjectId();
+    }
+    const mcpClient = (extension as unknown as { mcpClient: import('../../core/database.js').MCPClient }).mcpClient;
+    const projectId = String(extension.getProjectId() ?? 1);
+
+    const generator = new GenerationManager(mcpClient, Number(projectId));
+
+    output.info(`Assembling ${length} overview of the intended book...`);
+    output.newline();
+
+    const result = await generator.generateOverview(projectId, length);
+
+    // Empty result with guidance (no outline/cast yet).
+    if (result.warnings && result.warnings.length > 0) {
+      for (const w of result.warnings) output.error(w);
+      return;
+    }
+
+    output.success('Intended-Book Overview:');
+    output.newline();
+    output.dim(result.content);
+    output.newline();
+
+    if (result.reasoning) {
+      output.dim(`💡 ${result.reasoning}`);
+      output.newline();
+    }
+
+    if (args.flags['save']) {
+      const exportDir = join(projectPath, 'export');
+      await mkdir(exportDir, { recursive: true });
+      const outputPath = join(exportDir, 'overview.md');
+      await writeFile(outputPath, result.content, 'utf-8');
+      output.success(`Saved to: ${outputPath}`);
+    } else {
+      output.dim('Tip: Add --save to write export/overview.md');
+    }
+  } catch (error) {
+    output.error(`Failed to generate overview: ${(error as Error).message}`);
   }
 }
 

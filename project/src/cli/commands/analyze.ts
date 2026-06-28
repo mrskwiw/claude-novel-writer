@@ -56,6 +56,7 @@ export const analyzeCommand: Command = {
       flags: [
         { name: 'chapter', alias: 'c', description: 'Chapter number to analyze', type: 'number' },
         { name: 'all', alias: 'a', description: 'Analyze all chapters', type: 'boolean' },
+        { name: 'strict', description: 'Hard pass/fail flagging instead of softened, density-relative advisories', type: 'boolean' },
       ],
       handler: async (args, context) => {
         await handleAnalyzeCommand(args, context.cwd, context.output);
@@ -66,6 +67,7 @@ export const analyzeCommand: Command = {
       description: 'Sentence rhythm analysis for one chapter (--chapter N)',
       flags: [
         { name: 'chapter', alias: 'c', description: 'Chapter number to analyze', type: 'number' },
+        { name: 'strict', description: 'Hard pass/fail flagging instead of softened advisories', type: 'boolean' },
       ],
       handler: async (args, context) => {
         await handleAnalyzeCommand(args, context.cwd, context.output);
@@ -76,6 +78,7 @@ export const analyzeCommand: Command = {
       description: 'Dialogue checks for one chapter (--chapter N)',
       flags: [
         { name: 'chapter', alias: 'c', description: 'Chapter number to analyze', type: 'number' },
+        { name: 'strict', description: 'Hard pass/fail flagging instead of softened advisories', type: 'boolean' },
       ],
       handler: async (args, context) => {
         await handleAnalyzeCommand(args, context.cwd, context.output);
@@ -189,6 +192,16 @@ export const analyzeCommand: Command = {
         await handleAnalyzeCommand(args, context.cwd, context.output);
       },
     },
+    {
+      name: 'hook',
+      description: 'Score a chapter opening\'s hook strength (0–100) with a per-signal breakdown (--chapter N, default 1)',
+      flags: [
+        { name: 'chapter', alias: 'c', description: 'Chapter number to score (default 1)', type: 'number' },
+      ],
+      handler: async (args, context) => {
+        await handleAnalyzeCommand(args, context.cwd, context.output);
+      },
+    },
   ],
   examples: [
     '/novel analyze tension-arc',
@@ -198,6 +211,7 @@ export const analyzeCommand: Command = {
     '/novel analyze conflict',
     '/novel analyze prose --chapter 1',
     '/novel analyze prose --all',
+    '/novel analyze prose --chapter 1 --strict',
     '/novel analyze sentences --chapter 1',
     '/novel analyze dialogue --chapter 1',
     '/novel analyze read-aloud --chapter 1',
@@ -213,5 +227,7 @@ export const analyzeCommand: Command = {
     '/novel analyze style --chapter 1',
     '/novel analyze style --all',
     '/novel analyze voice',
+    '/novel analyze hook',
+    '/novel analyze hook --chapter 1',
   ],
 };

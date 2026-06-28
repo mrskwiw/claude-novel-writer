@@ -51,15 +51,13 @@ import { GenerationManager } from '../../../project/src/ai/generation-manager.js
 
 function makeMockMCPClient(sceneContent: string | null): MCPClient {
   return {
+    // generateNextSentence reads the scene's chapter summary via a scenes⋈chapters
+    // JOIN (scene prose lives in the .md files, not the DB).
     readQuery: vi.fn().mockImplementation(async (query: string, _params: unknown[]) => {
-      if (query.includes('FROM scenes') && !query.includes('JOIN')) {
-        if (sceneContent !== null) {
-          return [{ content: sceneContent }];
-        }
-        return [];
+      if (query.includes('FROM scenes') && query.includes('JOIN')) {
+        return sceneContent !== null ? [{ summary: sceneContent }] : [];
       }
-      // JOIN fallback (chapter opening)
-      return [{ summary: 'The story begins here.' }];
+      return [];
     }),
     writeQuery: vi.fn().mockResolvedValue(undefined),
   };

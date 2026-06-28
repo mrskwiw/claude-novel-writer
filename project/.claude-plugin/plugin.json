@@ -1,6 +1,6 @@
 {
   "name": "claude-novel-writer",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "AI-assisted novel writing for Claude Code — structure, consistency tracking, context assembly, and prose analysis",
   "author": {
     "name": "claude-novel-writer",

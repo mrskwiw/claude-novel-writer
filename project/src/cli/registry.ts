@@ -36,6 +36,10 @@ import { seriesCommand } from './commands/series.js';
 import { reportCommand } from './commands/report.js';
 import { readaloudCommand } from './commands/readaloud.js';
 import { extractCommand } from './commands/extract.js';
+import { foreshadowCommand } from './commands/foreshadow.js';
+import { reviseCommand } from './commands/revise.js';
+import { structureCommand } from './commands/structure.js';
+import { themeCommand } from './commands/theme.js';
 
 export class CommandRegistry {
   private commands: Map<string, Command> = new Map();
@@ -113,6 +117,14 @@ export class CommandRegistry {
 
     // Drafting support tools — SPEC-06
     this.register(draftCommand);
+
+    // Foreshadowing tracker — PROC-03 (command def existed but was never registered)
+    this.register(foreshadowCommand);
+
+    // v0.2.0 craft features
+    this.register(reviseCommand);      // mechanical prose fixes (distinct from revision snapshots)
+    this.register(structureCommand);   // story-structure beat templates
+    this.register(themeCommand);       // theme / motif density tracking
 
     // Pacing & structure analysis — GAP-11 / SPEC-08
     this.register(analyzeCommand);

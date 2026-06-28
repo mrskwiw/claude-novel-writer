@@ -489,6 +489,16 @@ export interface ProseAnalysisResult {
 export type SynopsisLength = 'short' | 'medium' | 'long';
 
 /**
+ * Length presets for `generate overview` — a planning summary of the INTENDED
+ * book, assembled from the outline (plot threads + beats) and cast.
+ * - brief    ~150 words: premise + protagonist + central conflict + stakes
+ * - standard ~350 words: premise, main cast, plot through-line, direction
+ * - full     ~700 words: planning treatment — full cast, interweaving threads,
+ *            hard world rules, intended arc
+ */
+export type OverviewLength = 'brief' | 'standard' | 'full';
+
+/**
  * Aggregated project data used as context for synopsis, pitch,
  * query-letter, and comp-title generation.
  */

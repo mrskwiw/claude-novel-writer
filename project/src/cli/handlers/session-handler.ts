@@ -54,6 +54,7 @@ async function handleSessionStart(
     }
 
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const sessionManager = await extension.getSessionManager();
 
     // Get session type (default: drafting)
@@ -67,7 +68,7 @@ async function handleSessionStart(
 
     // Get mood (optional)
     const moodBefore = args.flags.mood as number | undefined;
-    if (moodBefore && (moodBefore < 1 || moodBefore > 5)) {
+    if (moodBefore !== undefined && (moodBefore < 1 || moodBefore > 5)) {
       output.error('Mood must be between 1 and 5');
       return;
     }
@@ -168,11 +169,12 @@ async function handleSessionEnd(
     }
 
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const sessionManager = await extension.getSessionManager();
 
     // Get mood after (optional)
     const moodAfter = args.flags.mood as number | undefined;
-    if (moodAfter && (moodAfter < 1 || moodAfter > 5)) {
+    if (moodAfter !== undefined && (moodAfter < 1 || moodAfter > 5)) {
       output.error('Mood must be between 1 and 5');
       return;
     }
@@ -255,6 +257,7 @@ async function handleSessionStats(
     }
 
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const sessionManager = await extension.getSessionManager();
 
     // Get days filter (optional)
@@ -321,6 +324,7 @@ async function handleProgress(
     }
 
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const dashboard = await extension.getProgressDashboard();
     const sessionManager = await extension.getSessionManager();
 

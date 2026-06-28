@@ -17,6 +17,7 @@ export const extractCommand: Command = {
   flags: [
     { name: 'chapter', alias: 'c', description: 'Chapter number to scan', type: 'number' },
     { name: 'all', alias: 'a', description: 'Scan all chapters', type: 'boolean' },
+    { name: 'file', alias: 'f', description: 'Scan an arbitrary prose file (e.g. a freeform outline) instead of a chapter', type: 'string' },
   ],
   handler: async (args, context) => {
     await handleExtractCommand(args, context.cwd, context.output);
@@ -25,5 +26,6 @@ export const extractCommand: Command = {
     '/novel extract --chapter 1',
     '/novel extract -c 3',
     '/novel extract --all',
+    '/novel extract --file outline.md',
   ],
 };

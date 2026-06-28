@@ -58,6 +58,7 @@ async function handleTimelineAdd(
 ): Promise<void> {
   try {
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const builder = extension.getTimelineBuilder();
 
     const name = args.flags.name as string;
@@ -135,6 +136,7 @@ async function handleTimelineList(
 ): Promise<void> {
   try {
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const builder = extension.getTimelineBuilder();
 
     const type = args.flags.type as string | undefined;
@@ -190,6 +192,7 @@ async function handleTimelineShow(
 ): Promise<void> {
   try {
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const builder = extension.getTimelineBuilder();
 
     const name = args.flags.name as string;
@@ -258,6 +261,7 @@ async function handleTimelineUpdate(
 ): Promise<void> {
   try {
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const builder = extension.getTimelineBuilder();
 
     const name = args.flags.name as string;
@@ -300,6 +304,7 @@ async function handleTimelineDelete(
 ): Promise<void> {
   try {
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const builder = extension.getTimelineBuilder();
 
     const name = args.flags.name as string;
@@ -331,6 +336,7 @@ async function handleTimelineLink(
 ): Promise<void> {
   try {
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const builder = extension.getTimelineBuilder();
 
     const before = args.flags.before as string;
@@ -378,6 +384,7 @@ async function handleTimelineCheck(
 ): Promise<void> {
   try {
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const builder = extension.getTimelineBuilder();
 
     output.info('Checking timeline for conflicts...\n');
@@ -413,6 +420,7 @@ async function handleTimelineSync(
 ): Promise<void> {
   try {
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const sync = extension.getTimelineSync();
 
     output.info('Syncing timeline files to database...\n');
@@ -440,6 +448,7 @@ async function handleTimelineExport(
 ): Promise<void> {
   try {
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const sync = extension.getTimelineSync();
 
     const outputPath = (args.flags.output as string) || join(projectPath, 'timeline', 'timeline.yaml');

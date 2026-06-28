@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, rm, writeFile, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import YAML from 'yaml';
 import { TestNovelWriterExtension } from '../helpers/test-extension.js';
 import { handleCharacterCommand } from '../../project/src/cli/handlers/character-handler.js';
 import type { ParsedArgs, OutputFormatter } from '../../project/src/cli/types.js';
@@ -107,8 +108,11 @@ describe('Character Workflow Integration Tests', () => {
       expect(content).toContain('age: "35"');
       expect(content).toContain('eyeColor: "brown"');
       expect(content).toContain('hairColor: "black"');
-      expect(content).toContain('height: "6\'2""');
       expect(content).toContain('build: "athletic"');
+      // height is 6'2" — the embedded double quote must be escaped so the file
+      // is valid YAML and round-trips cleanly (regression: DATA-01).
+      const parsed = YAML.parse(content) as { physical: { height: string } };
+      expect(parsed.physical.height).toBe('6\'2"');
     });
 
     it('should create a character with personality', async () => {

@@ -184,6 +184,74 @@ He had grown up in Ironhold Keep.`;
   });
 });
 
+// ─── extractFromFile / extractFromText — arbitrary outline source ───────────────
+
+describe('EntityExtractor.extractFromFile() — outline bootstrap', () => {
+  const OUTLINE = `Our protagonist is Mara, a smuggler with a debt.
+
+"I will not go back," said Mara. Mara has one chance to clear her name.
+
+The climax unfolds at Ironhold Keep, where Mara confronts the man who framed her.`;
+
+  it('proposes characters and locations from a project-relative file path', async () => {
+    const { dir } = await project({ chapter: 'placeholder' });
+    await fs.writeFile(path.join(dir, 'outline.md'), OUTLINE, 'utf-8');
+
+    const extractor = new EntityExtractor(dir);
+    const result = await extractor.extractFromFile('outline.md');
+
+    expect(result.characters.map((c) => c.name)).toContain('Mara');
+    expect(result.locations.map((l) => l.name)).toContain('Ironhold Keep');
+  });
+
+  it('accepts an absolute file path', async () => {
+    const { dir } = await project({ chapter: 'placeholder' });
+    const abs = path.join(dir, 'plan.md');
+    await fs.writeFile(abs, OUTLINE, 'utf-8');
+
+    const extractor = new EntityExtractor(dir);
+    const result = await extractor.extractFromFile(abs);
+
+    expect(result.characters.map((c) => c.name)).toContain('Mara');
+  });
+
+  it('cross-references existing characters from the outline source too', async () => {
+    const { dir } = await project({
+      chapter: 'placeholder',
+      characters: { 'mara.yml': 'name: Mara\nrole: lead\n' },
+    });
+    await fs.writeFile(path.join(dir, 'outline.md'), OUTLINE, 'utf-8');
+
+    const extractor = new EntityExtractor(dir);
+    const result = await extractor.extractFromFile('outline.md');
+
+    // Already-known character is not re-proposed.
+    expect(result.characters.map((c) => c.name)).not.toContain('Mara');
+  });
+
+  it('rejects a missing file by throwing (handler surfaces a friendly error)', async () => {
+    const { dir } = await project({ chapter: 'placeholder' });
+    const extractor = new EntityExtractor(dir);
+
+    await expect(extractor.extractFromFile('does-not-exist.md')).rejects.toThrow();
+  });
+});
+
+describe('EntityExtractor.extractFromText() — raw string source', () => {
+  it('extracts from a raw string with markup stripped internally', async () => {
+    const { dir } = await project({ chapter: 'placeholder' });
+    const extractor = new EntityExtractor(dir);
+
+    const result = await extractor.extractFromText(
+      `## Beat sheet
+"Run," said Borin. Borin leads them out through the Sunken Gate.`
+    );
+
+    expect(result.characters.map((c) => c.name)).toContain('Borin');
+    expect(result.locations.map((l) => l.name)).toContain('Sunken Gate');
+  });
+});
+
 // ─── Sorting ───────────────────────────────────────────────────────────────────
 
 describe('EntityExtractor — result ordering', () => {

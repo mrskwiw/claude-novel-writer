@@ -16,7 +16,7 @@
  */
 
 import { readFile, readdir } from 'fs/promises';
-import { join } from 'path';
+import { join, isAbsolute } from 'path';
 import YAML from 'yaml';
 
 // ─── Public interfaces ────────────────────────────────────────────────────────
@@ -141,6 +141,27 @@ export class EntityExtractor {
         : join(this.projectPath, 'chapters', chapterFile);
 
     const raw = await readFile(filePath, 'utf-8');
+    return this.extractFromText(raw);
+  }
+
+  /**
+   * Scan an arbitrary prose file — typically a freeform outline or treatment the
+   * author wrote before populating `characters/` / `plots/`. Use this to
+   * bootstrap structured entities from an existing plan.
+   *
+   * @param file - Absolute path, or a path relative to `projectPath`.
+   */
+  async extractFromFile(file: string): Promise<ExtractionResult> {
+    const filePath = isAbsolute(file) ? file : join(this.projectPath, file);
+    const raw = await readFile(filePath, 'utf-8');
+    return this.extractFromText(raw);
+  }
+
+  /**
+   * Core extraction over raw text (markup is stripped internally). Cross-checks
+   * against the names already recorded under `characters/` and `locations/`.
+   */
+  async extractFromText(raw: string): Promise<ExtractionResult> {
     const text = EntityExtractor.stripMarkup(raw);
 
     const [knownCharacters, knownLocations] = await Promise.all([

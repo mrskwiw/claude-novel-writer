@@ -8,8 +8,16 @@ A [Claude Code](https://claude.ai/code) plugin for AI-assisted novel writing. Ma
 
 ## Installation
 
+Two alternate methods — both install the same plugin globally, so use whichever you prefer:
+
 ```bash
+# via npm
 npm install -g claude-novel-writer
+```
+
+```bash
+# via Claude Code's plugin manager
+claude plugin install claude-novel-writer
 ```
 
 Claude Code detects the extension automatically after installation. Restart Claude Code, then:
@@ -18,9 +26,18 @@ Claude Code detects the extension automatically after installation. Restart Clau
 /novel help
 ```
 
+### Local install (development / testing)
+
+```bash
+git clone https://github.com/mrskwiw/claude-novel-writer.git
+cd claude-novel-writer/project
+npm install && npm run build
+claude --plugin-dir .
+```
+
 ## How it works
 
-Once installed, the plugin loads four skills into Claude's context. Claude reads the skill descriptions and **invokes them automatically** based on what you say — you don't need to remember command names.
+Once installed, the plugin loads five skills into Claude's context. Claude reads the skill descriptions and **invokes them automatically** based on what you say — you don't need to remember command names.
 
 - Say *"I want to write a novel"* in a blank folder → Claude initializes the project
 - Say *"check my manuscript for inconsistencies"* → Claude runs consistency checks
@@ -35,23 +52,6 @@ When you want direct control, use the `/novel` slash command or the `novel-write
 - Node.js ≥ 18
 - pandoc (optional — for DOCX/EPUB/PDF export)
 - `ANTHROPIC_API_KEY` (required for AI generation commands only)
-
-## Installation
-
-```bash
-claude plugin install claude-novel-writer
-```
-
-Restart Claude Code after installing.
-
-### Local install (development / testing)
-
-```bash
-git clone https://github.com/mrskwiw/claude-novel-writer.git
-cd claude-novel-writer/project
-npm install && npm run build
-claude --plugin-dir .
-```
 
 ## Starting a new novel
 
@@ -148,8 +148,17 @@ All commands are available as `/novel <command>` (slash command) or `novel-write
 | `analyze pacing` | Tension arc, POV balance, chapter length distribution |
 | `analyze copy` | POV slips, tense shifts, name variant detection |
 | `analyze developmental` | Scene purpose audit, subplot balance, plot holes |
+| `analyze style` | Grade prose against this project's `style-targets.yml` (`--chapter N` / `--all`) |
+| `analyze voice` | Manuscript-wide voice analysis: flag too-similar voices and voices that drift |
+| `analyze hook` | Score a chapter's opening-line hook strength (0–100) across six signals (`--chapter N`) |
+| `revise <chapter>` | Diff-gated mechanical prose fixes — dry-run by default; `--apply <categories>` / `--all` |
+| `structure apply\|status` | Beat templates (three-act / Save the Cat / Hero's Journey) vs word-count positions |
+| `theme add\|list\|trace` | Register themes + motifs and trace motif density across chapters |
+| `report` | One-screen manuscript-health dashboard (tension, threads, promises, `[TK]`s) |
+| `readaloud` | Speak a chapter/scene/text aloud via the OS TTS engine (`--out` writes audio) |
+| `extract --chapter N` | Scan drafted prose for new character/location candidates (or `--file outline.md` to bootstrap from a freeform outline) |
 | `draft scan` | Find `[TK]`, `[TODO]`, `[CHECK]`, `[FIXME]` markers |
-| `draft readaloud` | Rhythm analysis, accidental rhyme detection |
+| `draft readaloud` | Rhythm analysis, accidental rhyme detection (text prep, not audio) |
 
 ### AI generation
 
@@ -165,6 +174,8 @@ Requires `ANTHROPIC_API_KEY`.
 | `generate comps` | Comparable titles |
 | `generate character --id N` | Full character profile |
 | `generate name` | Character or place name suggestions |
+| `generate summary --chapter N` | ≤5-sentence chapter summary (API, or via the Claude Code session) |
+| `generate overview` | Summary of the **intended** book from the planned outline + cast (pre-draft; `--length brief\|standard\|full`) |
 
 ### Research
 

@@ -102,7 +102,7 @@ async function handleSceneAdd(
 
     // Validate tension level
     const tensionLevel = args.flags.tension as number | undefined;
-    if (tensionLevel && (tensionLevel < 1 || tensionLevel > 10)) {
+    if (tensionLevel !== undefined && (tensionLevel < 1 || tensionLevel > 10)) {
       output.error('Tension level must be between 1 and 10');
       return;
     }
@@ -232,7 +232,7 @@ async function handleSceneEdit(
 
     // Validate tension level
     const tensionLevel = args.flags.tension as number | undefined;
-    if (tensionLevel && (tensionLevel < 1 || tensionLevel > 10)) {
+    if (tensionLevel !== undefined && (tensionLevel < 1 || tensionLevel > 10)) {
       output.error('Tension level must be between 1 and 10');
       return;
     }
@@ -426,7 +426,7 @@ async function handleSceneSync(
     }
 
     const extension = new NovelWriterExtension(projectPath);
-    extension.setProjectId(1);
+    await extension.loadProjectId();
     const sceneSync = extension.getSceneSync();
 
     await sceneSync.syncChapterScenes(chapterPath, {
@@ -457,7 +457,7 @@ async function handleTensionArc(
     }
 
     const extension = new NovelWriterExtension(projectPath);
-    extension.setProjectId(1);
+    await extension.loadProjectId();
     const sceneSync = extension.getSceneSync();
 
     const tensionArc = await sceneSync.getTensionArc();
@@ -572,7 +572,7 @@ async function handleSceneBeats(
           return;
         }
         const extension = new NovelWriterExtension(projectPath);
-        extension.setProjectId(1);
+        await extension.loadProjectId();
         const sceneSync = extension.getSceneSync();
 
         // Find scene DB id
@@ -601,7 +601,7 @@ async function handleSceneBeats(
         output.newline();
 
         const extension = new NovelWriterExtension(projectPath);
-        extension.setProjectId(1);
+        await extension.loadProjectId();
         const generator = extension.getBeatGenerator();
 
         const beats = await generator.generateBeats(scene.metadata, chapterNumber, {

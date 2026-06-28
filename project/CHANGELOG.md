@@ -7,6 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-28
+
+### Changed (MCP server — passthrough rewrite)
+- The `novel-tools` MCP server was a parallel, hand-written set of ~40 tools
+  that had drifted badly behind the CLI and was broken against the current
+  schema (it queried a non-existent `projects.project_path` column and a
+  `novel.db` file the app never creates). It is replaced by a **single `novel`
+  passthrough tool** that runs any CLI command in a project and returns its
+  output. The CLI's `CommandRegistry` is now the single source of truth, so the
+  MCP surface can never drift again — the tool's description points callers at
+  `help` / `help <command>` to discover the live command + argument list.
+  (`mcp-server/novel-tools/`: `handlers.ts` + `tools.ts` removed; `index.ts`
+  rewritten; `launch.js` refactored for testability.)
+
+### Fixed (correctness bugs surfaced by coverage work)
+- **`session`, `location`, and `timeline` commands were non-functional** on a
+  real project: each handler built a `NovelWriterExtension` but never resolved
+  the project id, so every DB operation threw "Project ID not set" (timeline was
+  entirely broken; session start/end/stats and progress always failed). All
+  three now call `loadProjectId()`. (BUGS.md CLI-02)
+- **`/novel foreshadow` was unreachable** — the command and its handler existed
+  and were tested, but the command was never registered in the CLI registry.
+  Now registered. (BUGS.md CLI-03)
+- **`check characters` / `check timeline` / `check plot-threads` silently
+  reported no issues** (and `check list` showed `[undefined]` badges) — the
+  handlers read camelCase fields off raw snake_case rows; `getOpenIssues()` now
+  maps to the typed `ConsistencyIssue` shape. (BUGS.md CHECK-01/02)
+- **`generate next-sentence` always failed** — it queried `scenes.content` /
+  `scenes.project_id`, which don't exist; now reads the scene's chapter summary
+  via a valid join. (BUGS.md SQL-04)
+- **`world-rule established` could throw an FK violation** — a chapter *number*
+  was written into the `established_chapter_id` (FK → `chapters.id`); both sync
+  directions now resolve number↔id. (BUGS.md SQL-05)
+- **Character files with a quote in an attribute** (e.g. `height: 5'9"`) produced
+  invalid YAML that broke sync — values are now escaped. (BUGS.md DATA-01)
+- `--tension 0` / `--mood 0` no longer bypass range validation. (BUGS.md VAL-01)
+- `scene-handler` resolves the real project id instead of hardcoding 1. (BUGS.md ROBUST-01)
+
+### Added (v0.2.0 craft features — round 2)
+- **`novel revise <chapter> [--apply <categories>|--all]`** — diff-gated
+  mechanical prose fixes (doubled words, redundant intensifiers, adverb dialogue
+  tags, straight→curly quotes, multiple/trailing whitespace). Dry-run preview by
+  default; applies only the categories you opt into. Distinct from `revision`
+  (snapshots).
+- **`novel structure list|apply <template>|status`** — story-structure beat
+  templates (three-act, Save the Cat, Hero's Journey) mapped to word-count
+  positions; `status` compares the applied plan against drafted word count.
+- **`novel theme add|list|trace`** — register themes + motif words and trace
+  motif density across chapters (sparkline, gaps, spikes). Deterministic.
+- **`novel analyze hook [--chapter N]`** — deterministic opening-line
+  hook-strength scorer (0–100) across six signals with advisory suggestions.
+- **Advisory severity grading** — `analyze prose|sentences|dialogue` now grade
+  flags as info/suggestion/warning relative to `style-targets.yml` (with an
+  optional `allow:` list and softened wording); `--strict` restores hard flagging.
+- **`novel help --json`** — machine-readable JSON schema of the whole CLI (or a
+  single command), so tooling/agents can introspect commands + flags without
+  parsing prose.
+
+### Tests & coverage
+- Removed `tests/e2e/gothic-horror-live.test.ts` (hardcoded to a personal
+  absolute path; unrunnable elsewhere).
+- Coverage scope corrected (excludes built `dist/`, `examples/`, config files).
+- Comprehensive in-process handler tests added: **CLI at 96.6% statements**
+  (every handler ≥90% except session-handler at 88%), **mcp-server at 93.9%**,
+  project total 91.7% — up from a 55.5% project baseline. Suite: 2,445 tests.
+- Six additional latent bugs documented in `BUGS.md` (CHECK-01/02, SQL-04/05,
+  DATA-01, VAL-01, ROBUST-01) for follow-up.
+
 ### Fixed (Tier-0 correctness)
 - `create chapter` now syncs the new chapter to the database and auto-numbers it
   (was: never synced, hardcoded chapter 1) — chapters are immediately visible to
@@ -29,6 +97,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   voices that sound too alike and voices that drift across chapters.
 - **`novel extract --chapter N`** — discovery-writer path: scans drafted prose
   for new character/location candidates and proposes ready-to-run create commands.
+- **`novel extract --file <path>`** — runs the same discovery scan over any
+  prose file (e.g. a freeform outline), so a planner can bootstrap structured
+  `characters/` / `plots/` entities before drafting begins.
+- **`novel generate overview`** — summary of the **intended** book, assembled
+  from the planned outline (plot threads + their beats) and the character
+  roster (unlike `synopsis`, which summarizes drafted chapters). Works
+  pre-draft; `--length brief|standard|full`, `--save` writes
+  `export/overview.md`. Uses the API when `ANTHROPIC_API_KEY` is set, otherwise
+  the Claude Code session (passthrough). Emits a guidance warning — pointing at
+  `extract --file` — when no cast or outline exists yet.
 
 ## [0.1.1] - 2026-06-26
 
@@ -165,6 +243,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `generate`, `idea`, `knowledge`, `canon`, `promise`, `context`, `graph`
 - `revision`, `draft`, `analyze`, `research`, `beta`, `query`, `series`, `help`
 
-[Unreleased]: https://github.com/mrskwiw/claude-novel-writer/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/mrskwiw/claude-novel-writer/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mrskwiw/claude-novel-writer/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/mrskwiw/claude-novel-writer/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/mrskwiw/claude-novel-writer/releases/tag/v0.1.0

@@ -110,7 +110,14 @@ export class WorldRulesSync {
     if (row.established_chapter_id || row.established_quote) {
       yaml.established_in = {};
       if (row.established_chapter_id) {
-        yaml.established_in.chapter = row.established_chapter_id as number;
+        // established_chapter_id is an FK to chapters.id; the YAML records a
+        // chapter NUMBER, so resolve id → chapter_number.
+        const chRows = await this.mcpClient.readQuery<{ chapter_number: number }>(
+          'SELECT chapter_number FROM chapters WHERE id = ? LIMIT 1',
+          [row.established_chapter_id]
+        );
+        yaml.established_in.chapter =
+          chRows[0]?.chapter_number ?? (row.established_chapter_id as number);
       }
       if (row.established_quote) {
         yaml.established_in.quote = row.established_quote as string;
@@ -142,7 +149,18 @@ export class WorldRulesSync {
       [this.projectId, ruleData.name]
     );
 
-    const establishedChapterId = ruleData.established_in?.chapter || null;
+    // `established_in.chapter` is a chapter NUMBER in the YAML, but
+    // established_chapter_id is an FK to chapters.id — resolve number → id so
+    // the write doesn't violate the foreign key (null when the chapter isn't synced).
+    let establishedChapterId: number | null = null;
+    const establishedChapterNumber = ruleData.established_in?.chapter;
+    if (establishedChapterNumber !== undefined && establishedChapterNumber !== null) {
+      const chapterRows = await this.mcpClient.readQuery<{ id: number }>(
+        'SELECT id FROM chapters WHERE project_id = ? AND chapter_number = ? LIMIT 1',
+        [this.projectId, establishedChapterNumber]
+      );
+      establishedChapterId = chapterRows[0]?.id ?? null;
+    }
     const establishedQuote = ruleData.established_in?.quote || null;
     const isHardRule = ruleData.is_hard_rule !== undefined ? (ruleData.is_hard_rule ? 1 : 0) : 1;
 

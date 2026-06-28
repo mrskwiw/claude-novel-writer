@@ -44,9 +44,22 @@ Pass any arguments directly to the CLI. Common examples:
 - `novel-writer list characters` — list all characters
 - `novel-writer list chapters` — list chapters with word counts
 - `novel-writer check` — run all consistency checks
-- `novel-writer analyze prose` — prose economy and style analysis
+- `novel-writer report` — one-screen manuscript-health dashboard
+- `novel-writer analyze prose` — prose economy and style analysis (advisory; add `--strict` for hard flags)
 - `novel-writer analyze pacing` — tension arc and POV balance
+- `novel-writer analyze hook --chapter 1` — score a chapter's opening-line hook strength
+- `novel-writer revise 1 --apply doubled-words,trailing-whitespace` — diff-gated mechanical fixes (dry-run by default)
+- `novel-writer structure apply three-act` / `structure status` — beat templates vs word-count positions
+- `novel-writer theme add --name "isolation" --motifs "cold,mirror,silence"` / `theme trace` — motif density
+- `novel-writer help --json` — machine-readable schema of every command + flag
+- `novel-writer analyze style --all` — grade prose against the project's style-targets.yml
+- `novel-writer analyze voice` — flag too-similar / drifting character voices
+- `novel-writer extract --chapter 1` — propose new characters/locations from drafted prose
+- `novel-writer extract --file outline.md` — bootstrap characters/locations from a freeform outline
+- `novel-writer readaloud --chapter 1` — speak a chapter aloud via the OS TTS engine
 - `novel-writer generate scene --scene-id 1` — AI scene continuation
+- `novel-writer generate overview` — summarize the intended book from the planned outline + cast
+- `novel-writer generate summary --chapter 1` — ≤5-sentence chapter summary
 - `novel-writer research verify` — scan for [VERIFY:] markers
 - `novel-writer export markdown` — export assembled manuscript
 - `novel-writer help` — full command list

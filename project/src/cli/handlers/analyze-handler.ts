@@ -22,6 +22,8 @@ import { CopyEditor } from '../../analysis/copy-editor.js';
 import { StyleTargetAnalyzer, type StyleTargetReport } from '../../analysis/style-target-analyzer.js';
 import { VoiceAnalyzer, type VoiceReport } from '../../analysis/voice-analyzer.js';
 import { loadStyleTargets } from '../../analysis/style-targets.js';
+import { gradeChecks, loadAllowList, type GradedCheck } from '../../analysis/severity.js';
+import { HookAnalyzer, type HookScore } from '../../analysis/hook-analyzer.js';
 import YAML from 'yaml';
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
@@ -91,10 +93,13 @@ export async function handleAnalyzeCommand(
     case 'voice':
       await handleVoice(args, projectPath, output);
       break;
+    case 'hook':
+      await handleHook(args, projectPath, output);
+      break;
     default:
       output.error(`Unknown analyze subcommand: ${subcommand}`);
       output.info(
-        'Available: tension-arc, pov-balance, chapter-lengths, pacing, conflict, prose, sentences, dialogue, read-aloud, rhythm, scenes, subplots, plot-holes, copy, dialogue-reader, sensory, show-tell, style, voice'
+        'Available: tension-arc, pov-balance, chapter-lengths, pacing, conflict, prose, sentences, dialogue, read-aloud, rhythm, scenes, subplots, plot-holes, copy, dialogue-reader, sensory, show-tell, style, voice, hook'
       );
   }
 }
@@ -370,6 +375,64 @@ function renderChecks(checks: ProseCheck[], output: OutputFormatter): void {
   print('Info', bySeverity['info']);
 }
 
+/**
+ * Render prose checks in advisory mode: flags are re-graded by density relative
+ * to the project's style targets, allow-listed text is suppressed, and the
+ * wording is softened (Le Guin: suggest, don't dictate). Bypassed by `--strict`,
+ * which falls back to {@link renderChecks}.
+ */
+function renderChecksAdvisory(
+  checks: ProseCheck[],
+  wordCount: number,
+  output: OutputFormatter,
+  projectPath: string,
+): void {
+  const { targets } = loadStyleTargets(projectPath);
+  const allow = loadAllowList(projectPath);
+  const graded = gradeChecks(checks, wordCount, targets, allow);
+
+  if (graded.length === 0) {
+    output.success('Nothing flagged. (Advisory mode — run with --strict for hard flagging.)');
+    return;
+  }
+
+  const bySeverity: Record<string, GradedCheck[]> = { warning: [], suggestion: [], info: [] };
+  for (const g of graded) bySeverity[g.severity].push(g);
+
+  const print = (label: string, items: GradedCheck[]) => {
+    if (items.length === 0) return;
+    output.info(`── ${label} (${items.length}) ─────────────────────────`);
+    for (const g of items) {
+      const loc = g.column ? `L${g.line}:${g.column}` : `L${g.line}`;
+      output.info(`  [${g.type}] ${loc}: "${g.text}" — ${g.message}`);
+    }
+    output.newline();
+  };
+
+  print('Worth a look', bySeverity['warning']);
+  print('Suggestions', bySeverity['suggestion']);
+  print('Notes', bySeverity['info']);
+  output.dim('Advisory grading scaled to style-targets.yml. Use --strict for hard pass/fail flagging.');
+}
+
+/**
+ * Dispatch prose-check rendering: hard, blunt flags under `--strict`; softened,
+ * density-relative advisories otherwise.
+ */
+function renderProseChecks(
+  args: ParsedArgs,
+  checks: ProseCheck[],
+  wordCount: number,
+  output: OutputFormatter,
+  projectPath: string,
+): void {
+  if (args.flags['strict']) {
+    renderChecks(checks, output);
+  } else {
+    renderChecksAdvisory(checks, wordCount, output, projectPath);
+  }
+}
+
 /** Render a summary line for a ProseAnalysisResult */
 function renderSummary(result: ProseAnalysisResult, output: OutputFormatter): void {
   output.info(
@@ -400,7 +463,7 @@ async function handleProse(
         output.info(`── ${result.chapterFile} ─────────────────────────`);
         renderSummary(result, output);
         output.newline();
-        renderChecks(result.checks, output);
+        renderProseChecks(args, result.checks, result.wordCount, output, projectPath);
       }
     } else {
       const filePath = resolveChapterFile(args, projectPath, output);
@@ -410,7 +473,7 @@ async function handleProse(
       output.newline();
       renderSummary(result, output);
       output.newline();
-      renderChecks(result.checks, output);
+      renderProseChecks(args, result.checks, result.wordCount, output, projectPath);
     }
   } catch (err) {
     output.error(`Prose analysis failed: ${(err as Error).message}`);
@@ -434,7 +497,7 @@ async function handleSentences(
 
     output.heading(`Sentence Rhythm — ${result.chapterFile}`);
     output.newline();
-    renderChecks(sentenceChecks, output);
+    renderProseChecks(args, sentenceChecks, result.wordCount, output, projectPath);
   } catch (err) {
     output.error(`Sentence analysis failed: ${(err as Error).message}`);
   }
@@ -458,7 +521,7 @@ async function handleDialogue(
     output.newline();
     output.info(`  Dialogue: ${result.dialoguePercent.toFixed(1)}% of text`);
     output.newline();
-    renderChecks(result.checks, output);
+    renderProseChecks(args, result.checks, result.wordCount, output, projectPath);
   } catch (err) {
     output.error(`Dialogue analysis failed: ${(err as Error).message}`);
   }
@@ -1130,4 +1193,65 @@ async function handleCopyEdit(
   } catch (err) {
     output.error(`Copy-edit analysis failed: ${(err as Error).message}`);
   }
+}
+
+// ─── Opening-line hook-strength scorer ───────────────────────────────────────
+
+/**
+ * Handle `analyze hook [--chapter N]` (default chapter 1).
+ *
+ * Scores a chapter's opening line(s) on deterministic hook signals and prints a
+ * 0–100 score, a per-signal breakdown, and advisory suggestions.
+ */
+async function handleHook(
+  args: ParsedArgs,
+  projectPath: string,
+  output: OutputFormatter,
+): Promise<void> {
+  try {
+    // Default to chapter 1 when no --chapter flag is given.
+    const chapter = (args.flags['chapter'] as number | undefined) ?? 1;
+    const hookArgs: ParsedArgs = { ...args, flags: { ...args.flags, chapter } };
+    const filePath = resolveChapterFile(hookArgs, projectPath, output);
+    if (!filePath) return;
+
+    const result: HookScore = await new HookAnalyzer(projectPath).analyzeChapter(filePath);
+
+    output.heading(`Opening Hook — ${result.chapter}`);
+    output.newline();
+
+    output.info(`  Score: ${result.score}/100  ${hookVerdict(result.score)}`);
+    output.newline();
+
+    output.info('── Opening Line ──────────────────────────');
+    output.dim(`  "${result.openingLine}"`);
+    output.newline();
+
+    output.info('── Signal Breakdown ──────────────────────');
+    const rows = result.signals.map((s) => ({
+      Signal: s.label,
+      Score: `${s.points}/${s.max}`,
+      Detail: s.detail,
+    }));
+    output.table(rows);
+    output.newline();
+
+    if (result.suggestions.length === 0) {
+      output.success('Strong opening — every hook signal fired.');
+    } else {
+      output.info('── Suggestions ───────────────────────────');
+      for (const s of result.suggestions) output.info(`  • ${s}`);
+      output.dim('These are options, not corrections — keep what serves your opening.');
+    }
+  } catch (err) {
+    output.error(`Hook analysis failed: ${(err as Error).message}`);
+  }
+}
+
+/** Map a hook score to a short, non-judgemental verdict. */
+function hookVerdict(score: number): string {
+  if (score >= 75) return '(a strong, pulling opening)';
+  if (score >= 50) return '(a solid opening with room to sharpen)';
+  if (score >= 25) return '(a soft opening — several signals are quiet)';
+  return '(a slow start — consider what pulls the reader in)';
 }

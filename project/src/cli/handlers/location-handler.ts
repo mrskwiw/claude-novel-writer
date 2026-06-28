@@ -56,6 +56,7 @@ async function handleLocationCreate(
 ): Promise<void> {
   try {
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const builder = extension.getLocationBuilder();
 
     const name = args.flags.name as string | undefined;
@@ -118,6 +119,7 @@ async function handleLocationList(
 ): Promise<void> {
   try {
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const builder = extension.getLocationBuilder();
 
     const locationFiles = await builder.list();
@@ -173,6 +175,7 @@ async function handleLocationShow(
     }
 
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const builder = extension.getLocationBuilder();
 
     // Find location file
@@ -254,6 +257,7 @@ async function handleLocationEdit(
     }
 
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const builder = extension.getLocationBuilder();
 
     // Find location file
@@ -325,6 +329,7 @@ async function handleLocationDelete(
     }
 
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const builder = extension.getLocationBuilder();
 
     // Find location file
@@ -362,6 +367,7 @@ async function handleLocationSync(
 
     const name = args.flags.name as string | undefined;
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const locSync = extension.getLocationSync();
     const builder = extension.getLocationBuilder();
 
@@ -419,6 +425,7 @@ async function handleLocationScenes(
     }
 
     const extension = new NovelWriterExtension(projectPath);
+    await extension.loadProjectId();
     const mcpClient = (extension as any).mcpClient;
 
     // Find location ID by name

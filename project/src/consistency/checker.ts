@@ -686,6 +686,22 @@ If no violations found, respond with "NO_VIOLATIONS".`;
 
     query += ' ORDER BY ci.severity DESC, ci.detected_at DESC';
 
-    return (await this.mcpClient.readQuery(query, params)) as ConsistencyIssue[];
+    // The DB returns snake_case columns; map to the camelCase ConsistencyIssue
+    // shape so callers (the check handlers) can read issueType/chapterId/etc.
+    const rows = await this.mcpClient.readQuery<Record<string, unknown>>(query, params);
+    return rows.map((r) => ({
+      id: r.id as number,
+      projectId: r.project_id as number,
+      issueType: r.issue_type as ConsistencyIssue['issueType'],
+      severity: r.severity as ConsistencyIssue['severity'],
+      description: r.description as string,
+      chapterId: (r.chapter_id ?? undefined) as number | undefined,
+      sceneId: (r.scene_id ?? undefined) as number | undefined,
+      characterId: (r.character_id ?? undefined) as number | undefined,
+      locationId: (r.location_id ?? undefined) as number | undefined,
+      detectedAt: r.detected_at as unknown as Date,
+      status: r.status as ConsistencyIssue['status'],
+      resolutionNotes: (r.resolution_notes ?? undefined) as string | undefined,
+    }));
   }
 }

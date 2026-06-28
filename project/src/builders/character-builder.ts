@@ -8,6 +8,16 @@ import { join, dirname } from 'path';
 import YAML from 'yaml';
 import type { CharacterYAML } from '../types/novel.js';
 
+/**
+ * Render a value as a YAML double-quoted scalar, escaping backslashes and
+ * embedded double quotes. Without this, a value like a height of 5'9" produced
+ * `"5'9""` — invalid YAML that broke the sync round-trip. Normal values (no
+ * quotes) are unchanged, e.g. `brown` → `"brown"`.
+ */
+function dq(value: unknown): string {
+  return `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
 export interface CharacterBuilderOptions {
   projectPath: string;
   outputDir?: string; // Default: 'characters'
@@ -352,7 +362,7 @@ export class CharacterBuilder {
       parts.push('# Physical Attributes');
       parts.push('physical:');
       for (const [key, value] of Object.entries(character.physical)) {
-        parts.push(`  ${key}: "${value}"`);
+        parts.push(`  ${key}: ${dq(value)}`);
       }
       parts.push('');
     }
@@ -362,7 +372,7 @@ export class CharacterBuilder {
       parts.push('# Personality Traits');
       parts.push('personality:');
       for (const [key, value] of Object.entries(character.personality)) {
-        parts.push(`  ${key}: "${value}"`);
+        parts.push(`  ${key}: ${dq(value)}`);
       }
       parts.push('');
     }
@@ -372,7 +382,7 @@ export class CharacterBuilder {
       parts.push('# Background Information');
       parts.push('background:');
       for (const [key, value] of Object.entries(character.background)) {
-        parts.push(`  ${key}: "${value}"`);
+        parts.push(`  ${key}: ${dq(value)}`);
       }
       parts.push('');
     }
@@ -382,7 +392,7 @@ export class CharacterBuilder {
       parts.push('# Skills & Abilities');
       parts.push('skills:');
       for (const [key, value] of Object.entries(character.skills)) {
-        parts.push(`  ${key}: "${value}"`);
+        parts.push(`  ${key}: ${dq(value)}`);
       }
       parts.push('');
     }
@@ -407,7 +417,7 @@ export class CharacterBuilder {
       }
 
       if (character.voice.vocabulary) {
-        parts.push(`  vocabulary: "${character.voice.vocabulary}"`);
+        parts.push(`  vocabulary: ${dq(character.voice.vocabulary)}`);
       }
       parts.push('');
     }
@@ -419,7 +429,7 @@ export class CharacterBuilder {
       for (const rel of character.relationships) {
         parts.push(`  - character: ${rel.character}`);
         parts.push(`    type: ${rel.type}`);
-        parts.push(`    description: "${rel.description}"`);
+        parts.push(`    description: ${dq(rel.description)}`);
         parts.push('');
       }
     }

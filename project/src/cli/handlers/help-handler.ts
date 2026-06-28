@@ -4,20 +4,27 @@
  */
 
 import type { CommandRegistry } from '../registry.js';
+import type { Command } from '../types.js';
 
 /**
  * Handle the /novel help command.
  *
  * @param args - Positional arguments; args[0] is an optional command name.
  * @param registry - The CommandRegistry instance to query.
- * @returns Formatted help string.
+ * @param json - When true, return a machine-readable JSON schema instead of prose.
+ * @returns Formatted help string (or JSON when `json` is set).
  */
-export function handleHelpCommand(args: string[], registry: CommandRegistry): string {
-  if (args.length === 0 || args[0] === undefined || args[0].trim() === '') {
+export function handleHelpCommand(args: string[], registry: CommandRegistry, json = false): string {
+  const commandName = args[0]?.trim();
+
+  if (json) {
+    return buildHelpJson(registry, commandName);
+  }
+
+  if (!commandName) {
     return formatGeneralHelp(registry);
   }
 
-  const commandName = args[0].trim();
   const command = registry.get(commandName);
 
   if (!command) {
@@ -109,4 +116,53 @@ function formatGeneralHelp(registry: CommandRegistry): string {
   }
 
   return lines.join('\n');
+}
+
+/**
+ * Serialize a command (or subcommand) to a plain, machine-readable schema
+ * object — name, description, aliases, usage, arguments, flags, examples, and
+ * nested subcommands.
+ */
+function commandToSchema(command: Command): Record<string, unknown> {
+  return {
+    name: command.name,
+    description: command.description,
+    aliases: command.aliases ?? [],
+    usage: formatUsage(command),
+    arguments: (command.arguments ?? []).map((a) => ({
+      name: a.name,
+      description: a.description,
+      required: Boolean(a.required),
+    })),
+    flags: (command.flags ?? []).map((f) => ({
+      name: f.name,
+      alias: f.alias ?? null,
+      type: f.type,
+      required: Boolean(f.required),
+      choices: f.choices ?? null,
+      default: f.default ?? null,
+      description: f.description,
+    })),
+    subcommands: (command.subcommands ?? []).map((s) => commandToSchema(s)),
+    examples: command.examples ?? [],
+  };
+}
+
+/**
+ * Build the machine-readable JSON help. With a command name, emits that single
+ * command's schema; otherwise emits the full CLI schema (every top-level
+ * command). Consumers (tooling, the MCP passthrough) can introspect the CLI
+ * without parsing prose.
+ */
+function buildHelpJson(registry: CommandRegistry, commandName?: string): string {
+  if (commandName) {
+    const command = registry.get(commandName);
+    if (!command) {
+      return JSON.stringify({ error: `Unknown command: ${commandName}` }, null, 2);
+    }
+    return JSON.stringify(commandToSchema(command), null, 2);
+  }
+
+  const commands = registry.getAll().map((c) => commandToSchema(c));
+  return JSON.stringify({ commands }, null, 2);
 }

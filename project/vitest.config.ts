@@ -11,14 +11,15 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
       exclude: [
-        'node_modules/',
-        'dist/',
+        '**/node_modules/**',
+        '**/dist/**',          // build output (incl. mcp-server/**/dist) — measure src, not compiled copies
         'tests/',
         '**/*.test.ts',
         '**/*.spec.ts',
         '**/types/',
         '**/*.d.ts',
-        'vitest.config.ts',
+        '**/examples/**',      // sample/demo code, not shipped app logic
+        '**/*.config.{js,ts,mjs,cjs}',
       ],
       lines: 80,
       functions: 80,
