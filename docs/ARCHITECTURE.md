@@ -108,8 +108,6 @@ claudenovel/
     ├── ARCHITECTURE.md                # This file
     ├── DEVELOPER_GUIDE.md             # Setup guide
     ├── CLI_REFERENCE.md               # Command reference
-    ├── IMPLEMENTATION_STATUS.md       # Current status
-    ├── FUTURE_FEATURES.md             # Roadmap
     ├── NOVEL_CRAFT_PRINCIPLES.md      # Writing philosophy
     └── WRITING_PROCESS.md             # Writing process guide
 ```

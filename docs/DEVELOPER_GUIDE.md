@@ -807,7 +807,9 @@ npm install
 - [README.md](./README.md) - Project overview
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture
 - [CLI_REFERENCE.md](./CLI_REFERENCE.md) - Command reference
-- [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) - Feature status
+- [../project/CHANGELOG.md](../project/CHANGELOG.md) - Shipped feature record (status)
+- [../TODO.md](../TODO.md) - Open work
+- [../BUGS.md](../BUGS.md) - Bug history
 
 ### External Resources
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
