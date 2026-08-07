@@ -6,7 +6,12 @@
   "plugins": [
     {
       "name": "claude-novel-writer",
-      "source": "./",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/mrskwiw/claude-novel-writer.git",
+        "path": "project",
+        "ref": "main"
+      },
       "description": "AI-assisted novel writing for Claude Code — structure, consistency tracking, context assembly, and prose analysis",
       "author": {
         "name": "mrskwiw",
